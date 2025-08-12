@@ -198,7 +198,7 @@
   }
 
   async function loadRecipeMeta(path) {
-    const finalPath = path.startsWith('/') ? path : `/${path}`;
+    const finalPath = path.startsWith('/SimpleRecipes/') ? path : `/SimpleRecipes/${path}`;
     const res = await fetch(finalPath);
     if (!res.ok) throw new Error('Chyba načítání receptu');
     const recipe = await res.json();

@@ -133,7 +133,7 @@
     if (!res.ok) throw new Error('Nelze načíst manifest');
     const { recipes } = await res.json();
     for (const path of recipes) {
-      const finalPath = path.startsWith('/') ? path : `/${path}`;
+      const finalPath = path.startsWith('/SimpleRecipes/') ? path : `/SimpleRecipes/${path}`;
       const rr = await fetch(finalPath);
       if (!rr.ok) continue;
       const json = await rr.json();
@@ -181,7 +181,7 @@
       document.querySelector('main').innerHTML = '<p class="empty">Recept nebyl nalezen.</p>';
       return;
     }
-    const res = await fetch(path.startsWith('/') ? path : `/${path}`);
+    const res = await fetch(path.startsWith('/SimpleRecipes/') ? path : `/SimpleRecipes/${path}`);
     const recipe = await res.json();
     renderRecipe(recipe);
   }
