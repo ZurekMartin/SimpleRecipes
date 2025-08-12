@@ -1,0 +1,22 @@
+{
+  "id": "bramboraky",
+  "title": "Křupavé bramboráky",
+  "description": "Klasika české kuchyně – křupavé na povrchu, šťavnaté uvnitř.",
+  "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
+  "tags": ["Slané"],
+  "ingredients_types": ["Brambory", "Vejce", "Česnek", "Majoránka", "Sůl", "Pepř", "Hladká mouka", "Olej"],
+  "ingredients": [
+    "800 g brambor",
+    "2 vejce",
+    "3 stroužky česneku",
+    "Majoránka, sůl, pepř",
+    "2 lžíce hladké mouky",
+    "Olej na smažení"
+  ],
+  "steps": [
+    "Brambory nastrouhejte najemno a vymačkejte přebytečnou vodu.",
+    "Přidejte vejce, prolisovaný česnek, mouku a koření.",
+    "Na pánvi zahřejte olej a smažte tenké placičky dozlatova.",
+    "Odkládejte na papírovou utěrku a podávejte teplé."
+  ]
+}

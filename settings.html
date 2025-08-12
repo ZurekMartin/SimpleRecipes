@@ -1,0 +1,30 @@
+<div id="overlay" class="overlay" hidden></div>
+<div id="settingsPopover" class="popover" hidden role="dialog" aria-modal="true" aria-label="Nastavení">
+  <div class="popover-inner">
+    <div class="popover-header">
+      <h3>Nastavení</h3>
+      <button id="settingsClose" class="icon-btn small" aria-label="Zavřít">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="popover-content">
+      <div class="group">
+        <div class="group-label">Vzhled</div>
+        <div class="segmented" id="themeToggle" role="tablist" aria-label="Režim vzhledu">
+          <button role="tab" aria-selected="true" data-theme="auto" title="Automaticky">Auto</button>
+          <button role="tab" aria-selected="false" data-theme="light" title="Světlý">☀︎</button>
+          <button role="tab" aria-selected="false" data-theme="dark" title="Tmavý">☾</button>
+        </div>
+      </div>
+      <div class="group" id="viewSettingsGroup" style="display: none;">
+        <div class="group-label">Zobrazení</div>
+        <div class="segmented" id="viewToggle" role="tablist" aria-label="Přepnout zobrazení">
+          <button role="tab" aria-selected="true" data-view="grid" title="Karty">Karty</button>
+          <button role="tab" aria-selected="false" data-view="list" title="Seznam">Seznam</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

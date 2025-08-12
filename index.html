@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>SimpleRecipes – Domácí recepty</title>
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html">SimpleRecipes</a>
+
+        <div class="header-actions">
+          <button id="settingsButton" class="icon-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="settingsPopover" title="Nastavení">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="22" height="22" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div id="settingsContainer"></div>
+
+    <main class="container">
+      <section class="controls" aria-label="Vyhledávání a filtry">
+        <div class="search">
+          <div class="search-field">
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Hledat recept"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Hledat recept"
+            />
+            <button id="searchClear" class="clear-btn" aria-label="Vymazat hledání" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+                <path d="M12 2.25a9.75 9.75 0 1 0 0 19.5 9.75 9.75 0 0 0 0-19.5Zm3.53 12.72a.75.75 0 1 1-1.06 1.06L12 13.06l-2.47 2.47a.75.75 0 1 1-1.06-1.06L10.94 12 8.47 9.53a.75.75 0 1 1 1.06-1.06L12 10.94l2.47-2.47a.75.75 0 1 1 1.06 1.06L13.06 12l2.47 2.47Z"/>
+              </svg>
+            </button>
+          </div>
+          <button id="filtersToggle" class="icon-btn" aria-label="Zobrazit/skrýt filtry" aria-pressed="false" aria-controls="ingredientFilters" aria-expanded="false" title="Filtry">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="22" height="22" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-.293.707L13 12.414V19a1 1 0 0 1-.553.894l-4 2A1 1 0 0 1 7 21v-8.586L3.293 6.707A1 1 0 0 1 3 6V4z" />
+            </svg>
+          </button>
+        </div>
+        <div id="tagFilters" class="tags" aria-label="Filtr podle štítků"></div>
+        <div id="ingredientFilters" class="ingredients-filter" aria-label="Filtr podle surovin" hidden></div>
+      </section>
+
+      <section id="resultsSection">
+        <div id="results" class="cards grid" aria-live="polite" aria-busy="true"></div>
+        <div id="emptyState" class="empty" hidden>
+          <p>Žádné recepty neodpovídají vyhledávání.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <a class="footer-copy" href="https://www.github.com/ZurekMartin" target="_blank" rel="noopener">© <span id="year"></span> SimpleRecipes</a>
+      </div>
+    </footer>
+
+    <script src="assets/js/script.js" defer></script>
+  </body>
+  </html>
