@@ -26,7 +26,7 @@
 
   async function injectSettings() {
     try {
-      const response = await fetch('/settings.html');
+      const response = await fetch('/SimpleRecipes/settings.html');
       const settingsHtml = await response.text();
       els.settingsContainer.innerHTML = settingsHtml;
       
@@ -191,7 +191,7 @@
   }
 
   async function loadManifest() {
-    const res = await fetch('/assets/recipes/manifest.json');
+    const res = await fetch('/SimpleRecipes/assets/recipes/manifest.json');
     if (!res.ok) throw new Error('Nepodařilo se načíst manifest');
     const manifest = await res.json();
     return manifest.recipes || [];

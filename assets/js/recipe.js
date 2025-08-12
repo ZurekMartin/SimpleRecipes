@@ -16,7 +16,7 @@
 
   async function injectSettings() {
     try {
-      const response = await fetch('/settings.html');
+      const response = await fetch('/SimpleRecipes/settings.html');
       const settingsHtml = await response.text();
       els.settingsContainer.innerHTML = settingsHtml;
       
@@ -129,7 +129,7 @@
   }
 
   async function findRecipePathBySlug(slug) {
-    const res = await fetch('/assets/recipes/manifest.json');
+    const res = await fetch('/SimpleRecipes/assets/recipes/manifest.json');
     if (!res.ok) throw new Error('Nelze načíst manifest');
     const { recipes } = await res.json();
     for (const path of recipes) {
