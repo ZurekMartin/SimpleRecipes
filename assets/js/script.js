@@ -102,7 +102,7 @@
   }
 
   function recipeUrl(slug) {
-    return `/recipe.html?id=${encodeURIComponent(slug)}`;
+    return `/SimpleRecipes/recipe.html?id=${encodeURIComponent(slug)}`;
   }
 
   function gridCardTemplate(r) {
@@ -123,7 +123,7 @@
 
   function listItemTemplate(r) {
     const tags = r.tags?.map((t) => `<span class="chip">${t}</span>`).join('') || '';
-    const img = r.image || `https://images.unsplash.com/photo-1514516870926-2059896c8dfd?q=80&w=1200&auto=format&fit=crop`;
+    const img = r.image;
     return `
       <a class="card" href="${recipeUrl(r.slug)}" data-slug="${r.slug}" data-view="list">
         <img class="thumb" src="${img}" alt="${r.title}" loading="lazy"/>
