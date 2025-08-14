@@ -14,9 +14,12 @@
   const theme = localStorage.getItem('sr:theme') || 'auto';
   if (theme !== 'auto') document.documentElement.dataset.theme = theme;
 
+  const devMode = false;
+  const mainPath = devMode ? "/" : "/SimpleRecipes/";
+
   async function injectSettings() {
     try {
-      const response = await fetch('/SimpleRecipes/settings.html');
+      const response = await fetch(mainPath + 'settings.html');
       const settingsHtml = await response.text();
       els.settingsContainer.innerHTML = settingsHtml;
       
@@ -129,11 +132,11 @@
   }
 
   async function findRecipePathBySlug(slug) {
-    const res = await fetch('/SimpleRecipes/assets/recipes/manifest.json');
+    const res = await fetch(mainPath + 'assets/recipes/manifest.json');
     if (!res.ok) throw new Error('Nelze načíst manifest');
     const { recipes } = await res.json();
     for (const path of recipes) {
-      const finalPath = path.startsWith('/SimpleRecipes/') ? path : `/SimpleRecipes/${path}`;
+      const finalPath = path.startsWith(mainPath) ? path : mainPath + path;
       const rr = await fetch(finalPath);
       if (!rr.ok) continue;
       const json = await rr.json();
@@ -181,7 +184,7 @@
       document.querySelector('main').innerHTML = '<p class="empty">Recept nebyl nalezen.</p>';
       return;
     }
-    const res = await fetch(path.startsWith('/SimpleRecipes/') ? path : `/SimpleRecipes/${path}`);
+    const res = await fetch(path.startsWith(mainPath) ? path : mainPath + path);
     const recipe = await res.json();
     renderRecipe(recipe);
   }

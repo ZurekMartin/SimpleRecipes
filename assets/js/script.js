@@ -24,9 +24,12 @@
 
   document.documentElement.dataset.theme = state.theme === 'auto' ? '' : state.theme;
 
+  const devMode = false;
+  const mainPath = devMode ? "/" : "/SimpleRecipes/";
+
   async function injectSettings() {
     try {
-      const response = await fetch('/SimpleRecipes/settings.html');
+      const response = await fetch(mainPath + 'settings.html');
       const settingsHtml = await response.text();
       els.settingsContainer.innerHTML = settingsHtml;
       
@@ -70,21 +73,13 @@
       document.documentElement.dataset.theme = theme;
     }
     localStorage.setItem('sr:theme', theme);
-    if (els.themeToggle) {
-      [...els.themeToggle.querySelectorAll('button')].forEach((btn) => {
-        btn.setAttribute('aria-selected', String(btn.dataset.theme === theme));
-      });
-    }
+    setAriaSelectedByData(els.themeToggle, 'theme', theme);
   }
 
   function setView(view) {
     state.view = view;
     localStorage.setItem('sr:view', view);
-    if (els.viewToggle) {
-      [...els.viewToggle.querySelectorAll('button')].forEach((btn) => {
-        btn.setAttribute('aria-selected', String(btn.dataset.view === view));
-      });
-    }
+    setAriaSelectedByData(els.viewToggle, 'view', view);
     if (els.results) {
       els.results.classList.toggle('grid', view === 'grid');
       els.results.classList.toggle('list', view === 'list');
@@ -101,8 +96,23 @@
       .replace(/(^-|-$)+/g, '');
   }
 
+  function normalizeText(text) {
+    return text
+      .toString()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+  }
+
+  function setAriaSelectedByData(container, dataKey, activeValue) {
+    if (!container) return;
+    [...container.querySelectorAll('button')].forEach((btn) => {
+      btn.setAttribute('aria-selected', String(btn.dataset[dataKey] === activeValue));
+    });
+  }
+
   function recipeUrl(slug) {
-    return `/SimpleRecipes/recipe.html?id=${encodeURIComponent(slug)}`;
+    return mainPath + `recipe.html?id=${encodeURIComponent(slug)}`;
   }
 
   function gridCardTemplate(r) {
@@ -112,10 +122,10 @@
       <a class="card" href="${recipeUrl(r.slug)}" data-slug="${r.slug}" data-view="grid">
         <div class="thumb-wrap">
           <img class="thumb" src="${img}" alt="${r.title}" loading="lazy"/>
-          <div class="card-tags-overlay">${tags}</div>
         </div>
         <div class="card-body">
           <h3 class="card-title">${r.title}</h3>
+          <div class="card-tags">${tags}</div>
         </div>
       </a>
     `;
@@ -167,19 +177,11 @@
   }
 
   function filter() {
-    const q = els.search.value
-      .trim()
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '')
-      .toLowerCase();
+    const q = normalizeText(els.search.value.trim());
     const active = state.activeTag;
     const selectedIngs = [...state.selectedIngredients];
     state.filteredRecipes = state.allRecipes.filter((r) => {
-      const hay = [r.title, r.description, ...(r.tags || [])]
-        .join(' ')
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-        .toLowerCase();
+      const hay = r.searchHaystack || normalizeText([r.title, r.description, ...(r.tags || [])].join(' '));
       const matchesQuery = q ? hay.includes(q) : true;
       const matchesTags = active ? (r.tags || []).includes(active) : true;
       const matchesIngredients = selectedIngs.length
@@ -191,14 +193,14 @@
   }
 
   async function loadManifest() {
-    const res = await fetch('/SimpleRecipes/assets/recipes/manifest.json');
+    const res = await fetch(mainPath + 'assets/recipes/manifest.json');
     if (!res.ok) throw new Error('Nepodařilo se načíst manifest');
     const manifest = await res.json();
     return manifest.recipes || [];
   }
 
   async function loadRecipeMeta(path) {
-    const finalPath = path.startsWith('/SimpleRecipes/') ? path : `/SimpleRecipes/${path}`;
+    const finalPath = path.startsWith(mainPath) ? path : mainPath + path;
     const res = await fetch(finalPath);
     if (!res.ok) throw new Error('Chyba načítání receptu');
     const recipe = await res.json();
@@ -209,13 +211,8 @@
       image: recipe.image || '',
       tags: recipe.tags || [],
       ingredientTypes: recipe.ingredients_types || [],
-      ingredientTypesNormalized: (recipe.ingredients_types || []).map((i) =>
-        i
-          .toString()
-          .normalize('NFD')
-          .replace(/\p{Diacritic}/gu, '')
-          .toLowerCase()
-      ),
+      ingredientTypesNormalized: (recipe.ingredients_types || []).map((i) => normalizeText(i)),
+      searchHaystack: normalizeText([recipe.title, recipe.description || '', ...(recipe.tags || [])].join(' ')),
     };
   }
 
@@ -231,7 +228,7 @@
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.id = id;
-      cb.value = i.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+      cb.value = normalizeText(i);
       cb.addEventListener('change', () => {
         if (cb.checked) state.selectedIngredients.add(cb.value);
         else state.selectedIngredients.delete(cb.value);
