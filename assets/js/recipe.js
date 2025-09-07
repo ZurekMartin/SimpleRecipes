@@ -7,10 +7,14 @@
     ingredients: document.getElementById('ingredientsList'),
     steps: document.getElementById('stepsList'),
     settingsContainer: document.getElementById('settingsContainer'),
+    wakeLockToggle: document.getElementById('wakeLockToggle'),
   };
 
   const theme = localStorage.getItem('sr:theme') || 'auto';
   if (theme !== 'auto') document.documentElement.dataset.theme = theme;
+
+  const wakeLockEnabled = localStorage.getItem('sr:wakeLock') === 'true';
+  let wakeLock = null;
 
   const devMode = true;
   const mainPath = devMode ? "/" : "/SimpleRecipes/";
@@ -54,6 +58,7 @@
 
       setTheme(theme);
       bindSettings();
+      bindWakeLock();
     } catch (error) {
       console.error('Chyba při načítání nastavení:', error);
     }
@@ -137,6 +142,67 @@
     window.addEventListener('scroll', () => { if (!els.settingsPopover.hidden) positionPopover(); }, { passive: true });
   }
 
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) {
+      console.warn('Wake Lock API není podporován v tomto prohlížeči');
+      return false;
+    }
+
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      console.log('Wake Lock aktivován');
+      return true;
+    } catch (err) {
+      console.error('Nelze aktivovat Wake Lock:', err);
+      return false;
+    }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLock) {
+      wakeLock.release();
+      wakeLock = null;
+      console.log('Wake Lock deaktivován');
+    }
+  }
+
+  function setWakeLockState(enabled) {
+    localStorage.setItem('sr:wakeLock', enabled.toString());
+
+    if (enabled) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    if (els.wakeLockToggle) {
+      els.wakeLockToggle.setAttribute('aria-checked', enabled.toString());
+    }
+  }
+
+  function bindWakeLock() {
+    if (!els.wakeLockToggle) return;
+
+    setWakeLockState(wakeLockEnabled);
+
+    els.wakeLockToggle.addEventListener('click', () => {
+      const currentState = els.wakeLockToggle.getAttribute('aria-checked') === 'true';
+      setWakeLockState(!currentState);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && wakeLockEnabled) {
+        requestWakeLock();
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (wakeLockEnabled) {
+        setTimeout(() => requestWakeLock(), 100);
+      }
+    });
+  }
+
   function qsParam(name) {
     const url = new URL(location.href);
     return url.searchParams.get(name);
@@ -187,6 +253,16 @@
         btn.addEventListener('click', () => setTheme(btn.dataset.theme));
       });
     }
+
+    window.addEventListener('beforeunload', () => {
+      releaseWakeLock();
+    });
+
+    window.addEventListener('pageshow', () => {
+      if (wakeLockEnabled) {
+        requestWakeLock();
+      }
+    });
 
     const id = qsParam('id');
     if (!id) return;
