@@ -1,0 +1,19 @@
+{
+    "id": "pizza-sauce",
+    "title": "Smetanový základ na pizzu s mozzarellou a česnekem",
+    "description": "Jednoduchý smetanový základ na pizzu s mozzarellou a česnekem.",
+    "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
+    "tags": ["Slané"],
+    "ingredients_types": ["Smetana", "Mozzarella", "Česnek"],
+    "ingredients": [
+      "250 g 33% smetany ke šlehání",
+      "1 ks mozzarelly",
+      "1 stroužek česneku"
+    ],
+    "steps": [
+      "Mozzarellu nakrájíme na kostičky a rozmixujeme.",
+      "Stroužek česneku oloupeme a rozmixujeme s mozzarellou.",
+      "Přilijeme smetanu a mixujeme dokud nevznikne hladká a hustá pasta."
+    ]
+  }
+  

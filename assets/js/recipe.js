@@ -1,32 +1,43 @@
 (function () {
-  const els = {
+  let els = {
     title: document.getElementById('recipeTitle'),
     desc: document.getElementById('recipeDesc'),
     image: document.getElementById('recipeImage'),
     tags: document.getElementById('recipeTags'),
     ingredients: document.getElementById('ingredientsList'),
     steps: document.getElementById('stepsList'),
-    year: document.getElementById('year'),
-    settingsButton: document.getElementById('settingsButton'),
     settingsContainer: document.getElementById('settingsContainer'),
   };
 
   const theme = localStorage.getItem('sr:theme') || 'auto';
   if (theme !== 'auto') document.documentElement.dataset.theme = theme;
 
-  const devMode = false;
+  const devMode = true;
   const mainPath = devMode ? "/" : "/SimpleRecipes/";
 
-  async function injectSettings() {
+  async function injectComponents() {
     try {
-      const response = await fetch(mainPath + 'settings.html');
-      const settingsHtml = await response.text();
+      const headerResponse = await fetch(mainPath + 'assets/components/header.html');
+      const headerHtml = await headerResponse.text();
+      document.body.insertAdjacentHTML('afterbegin', headerHtml);
+
+      const footerResponse = await fetch(mainPath + 'assets/components/footer.html');
+      const footerHtml = await footerResponse.text();
+      document.body.insertAdjacentHTML('beforeend', footerHtml);
+
+      const settingsResponse = await fetch(mainPath + 'assets/components/settings.html');
+      const settingsHtml = await settingsResponse.text();
       els.settingsContainer.innerHTML = settingsHtml;
-      
-      els.themeToggle = document.getElementById('themeToggle');
-      els.settingsPopover = document.getElementById('settingsPopover');
-      els.settingsClose = document.getElementById('settingsClose');
-      els.overlay = document.getElementById('overlay');
+
+      els = {
+        ...els,
+        year: document.getElementById('year'),
+        settingsButton: document.getElementById('settingsButton'),
+        themeToggle: document.getElementById('themeToggle'),
+        settingsPopover: document.getElementById('settingsPopover'),
+        settingsClose: document.getElementById('settingsClose'),
+        overlay: document.getElementById('overlay'),
+      };
       
       if (els.settingsPopover) {
         els.settingsPopover.hidden = true;
@@ -169,7 +180,7 @@
   }
 
   async function init() {
-    await injectSettings();
+    await injectComponents();
     
     if (els.themeToggle) {
       [...els.themeToggle.querySelectorAll('button')].forEach((btn) => {

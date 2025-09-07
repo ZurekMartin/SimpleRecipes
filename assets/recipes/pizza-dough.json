@@ -1,0 +1,17 @@
+{
+  "id": "pizza-dough",
+  "title": "Pizza těsto z řeckého jogurtu a hladké mouky",
+  "description": "Jednoduché pizza těsto z řeckého jogurtu a hladké mouky.",
+  "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
+  "tags": ["Slané"],
+  "ingredients_types": ["Jogurt", "Hladká mouka", "Sůl", "Kypřící prášek do pečiva"],
+  "ingredients": [
+    "250-300 g řeckého jogurtu",
+    "250-300 g hladké mouky",
+    "Špetka soli",
+    "Malá lžička kypřícího prášku do pečiva"
+  ],
+  "steps": [
+    "Odvážené suroviny vložíme do mísy robotu a pomalu mísíme dokud nedostaneme hladké těsto, které se nelepí na stěny."
+  ]
+}

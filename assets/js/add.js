@@ -1,7 +1,5 @@
 (function () {
-  const els = {
-    year: document.getElementById('year'),
-    settingsButton: document.getElementById('settingsButton'),
+  let els = {
     settingsContainer: document.getElementById('settingsContainer'),
     form: document.getElementById('addForm'),
     id: document.getElementById('recipeId'),
@@ -17,7 +15,7 @@
     saveBtn: document.getElementById('saveBtn'),
   };
 
-  const devMode = false;
+  const devMode = true;
   const mainPath = devMode ? "/" : "/SimpleRecipes/";
 
   const state = {
@@ -46,15 +44,29 @@
     });
   }
 
-  async function injectSettings() {
+  async function injectComponents() {
     try {
-      const response = await fetch(mainPath + 'settings.html');
-      const settingsHtml = await response.text();
+      const headerResponse = await fetch(mainPath + 'assets/components/header.html');
+      const headerHtml = await headerResponse.text();
+      document.body.insertAdjacentHTML('afterbegin', headerHtml);
+
+      const footerResponse = await fetch(mainPath + 'assets/components/footer.html');
+      const footerHtml = await footerResponse.text();
+      document.body.insertAdjacentHTML('beforeend', footerHtml);
+
+      const settingsResponse = await fetch(mainPath + 'assets/components/settings.html');
+      const settingsHtml = await settingsResponse.text();
       els.settingsContainer.innerHTML = settingsHtml;
-      els.themeToggle = document.getElementById('themeToggle');
-      els.settingsPopover = document.getElementById('settingsPopover');
-      els.settingsClose = document.getElementById('settingsClose');
-      els.overlay = document.getElementById('overlay');
+
+      els = {
+        ...els,
+        year: document.getElementById('year'),
+        settingsButton: document.getElementById('settingsButton'),
+        themeToggle: document.getElementById('themeToggle'),
+        settingsPopover: document.getElementById('settingsPopover'),
+        settingsClose: document.getElementById('settingsClose'),
+        overlay: document.getElementById('overlay'),
+      };
       const theme = localStorage.getItem('sr:theme') || 'auto';
       setTheme(theme);
       bindSettings();
@@ -347,7 +359,7 @@
   }
 
   async function init() {
-    await injectSettings();
+    await injectComponents();
     els.year.textContent = new Date().getFullYear();
 
     try {

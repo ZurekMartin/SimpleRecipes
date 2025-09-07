@@ -1,7 +1,6 @@
 {
   "recipes": [
-    "assets/recipes/bramboraky.json",
-    "assets/recipes/cesnecka.json",
-    "assets/recipes/pancakes.json"
+    "assets/recipes/pizza-dough.json",
+    "assets/recipes/pizza-sauce.json"
   ]
 }

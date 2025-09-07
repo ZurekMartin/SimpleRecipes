@@ -8,36 +8,47 @@
     selectedIngredients: new Set(),
   };
 
-  const els = {
-    results: document.getElementById('results'),
-    empty: document.getElementById('emptyState'),
-    search: document.getElementById('searchInput'),
-    searchClear: document.getElementById('searchClear'),
-    tags: document.getElementById('tagFilters'),
-    year: document.getElementById('year'),
-    scrollTop: document.getElementById('scrollTop'),
-    ingredientFilters: document.getElementById('ingredientFilters'),
-    filtersToggle: document.getElementById('filtersToggle'),
-    settingsButton: document.getElementById('settingsButton'),
+  let els = {
     settingsContainer: document.getElementById('settingsContainer'),
   };
 
   document.documentElement.dataset.theme = state.theme === 'auto' ? '' : state.theme;
 
-  const devMode = false;
+  const devMode = true;
   const mainPath = devMode ? "/" : "/SimpleRecipes/";
 
-  async function injectSettings() {
+  async function injectComponents() {
     try {
-      const response = await fetch(mainPath + 'settings.html');
-      const settingsHtml = await response.text();
+      const headerResponse = await fetch(mainPath + 'assets/components/header.html');
+      const headerHtml = await headerResponse.text();
+      document.body.insertAdjacentHTML('afterbegin', headerHtml);
+
+      const footerResponse = await fetch(mainPath + 'assets/components/footer.html');
+      const footerHtml = await footerResponse.text();
+      document.body.insertAdjacentHTML('beforeend', footerHtml);
+
+      const settingsResponse = await fetch(mainPath + 'assets/components/settings.html');
+      const settingsHtml = await settingsResponse.text();
       els.settingsContainer.innerHTML = settingsHtml;
-      
-      els.viewToggle = document.getElementById('viewToggle');
-      els.themeToggle = document.getElementById('themeToggle');
-      els.settingsPopover = document.getElementById('settingsPopover');
-      els.settingsClose = document.getElementById('settingsClose');
-      els.overlay = document.getElementById('overlay');
+
+      els = {
+        ...els,
+        results: document.getElementById('results'),
+        empty: document.getElementById('emptyState'),
+        search: document.getElementById('searchInput'),
+        searchClear: document.getElementById('searchClear'),
+        tags: document.getElementById('tagFilters'),
+        year: document.getElementById('year'),
+        scrollTop: document.getElementById('scrollTop'),
+        ingredientFilters: document.getElementById('ingredientFilters'),
+        filtersToggle: document.getElementById('filtersToggle'),
+        settingsButton: document.getElementById('settingsButton'),
+        viewToggle: document.getElementById('viewToggle'),
+        themeToggle: document.getElementById('themeToggle'),
+        settingsPopover: document.getElementById('settingsPopover'),
+        settingsClose: document.getElementById('settingsClose'),
+        overlay: document.getElementById('overlay'),
+      };
       
       const viewSettingsGroup = document.getElementById('viewSettingsGroup');
       if (viewSettingsGroup) {
@@ -222,22 +233,25 @@
     const all = Array.from(set).sort((a, b) => a.localeCompare(b, 'cs'));
     els.ingredientFilters.innerHTML = '';
     all.forEach((i) => {
-      const id = `ing-${slugify(i)}`;
-      const label = document.createElement('label');
-      label.className = 'check';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.id = id;
-      cb.value = normalizeText(i);
-      cb.addEventListener('change', () => {
-        if (cb.checked) state.selectedIngredients.add(cb.value);
-        else state.selectedIngredients.delete(cb.value);
+      const btn = document.createElement('button');
+      btn.className = 'tag';
+      btn.type = 'button';
+      btn.textContent = i;
+      btn.dataset.ingredient = normalizeText(i);
+      btn.setAttribute('aria-pressed', String(state.selectedIngredients.has(normalizeText(i))));
+      btn.addEventListener('click', () => {
+        const normalizedIng = normalizeText(i);
+        if (state.selectedIngredients.has(normalizedIng)) {
+          state.selectedIngredients.delete(normalizedIng);
+        } else {
+          state.selectedIngredients.add(normalizedIng);
+        }
+        [...els.ingredientFilters.querySelectorAll('button.tag')].forEach((b) =>
+          b.setAttribute('aria-pressed', String(state.selectedIngredients.has(b.dataset.ingredient)))
+        );
         filter();
       });
-      const span = document.createElement('span');
-      span.textContent = i;
-      label.append(cb, span);
-      els.ingredientFilters.appendChild(label);
+      els.ingredientFilters.appendChild(btn);
     });
   }
 
@@ -311,7 +325,7 @@
 
   async function init() {
     try {
-      await injectSettings();
+      await injectComponents();
       
       els.year.textContent = new Date().getFullYear();
       
