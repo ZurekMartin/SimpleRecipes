@@ -14,7 +14,7 @@
 
   document.documentElement.dataset.theme = state.theme === 'auto' ? '' : state.theme;
 
-  const devMode = true;
+  const devMode = false;
   const mainPath = devMode ? "/" : "/SimpleRecipes/";
 
   async function injectComponents() {

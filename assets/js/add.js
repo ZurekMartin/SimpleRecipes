@@ -15,7 +15,7 @@
     saveBtn: document.getElementById('saveBtn'),
   };
 
-  const devMode = true;
+  const devMode = false;
   const mainPath = devMode ? "/" : "/SimpleRecipes/";
 
   const state = {

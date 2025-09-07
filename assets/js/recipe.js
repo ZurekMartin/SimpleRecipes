@@ -16,7 +16,7 @@
   const wakeLockEnabled = localStorage.getItem('sr:wakeLock') === 'true';
   let wakeLock = null;
 
-  const devMode = true;
+  const devMode = false;
   const mainPath = devMode ? "/" : "/SimpleRecipes/";
 
   async function injectComponents() {
