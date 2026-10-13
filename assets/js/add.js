@@ -16,7 +16,7 @@
   };
 
   const devMode = false;
-  const mainPath = devMode ? "/" : "/SimpleRecipes/";
+  const mainPath = devMode ? "/" : "/";
 
   const state = {
     allTags: [],

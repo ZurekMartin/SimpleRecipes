@@ -17,7 +17,7 @@
   let wakeLock = null;
 
   const devMode = false;
-  const mainPath = devMode ? "/" : "/SimpleRecipes/";
+  const mainPath = devMode ? "/" : "/";
 
   async function injectComponents() {
     try {
