@@ -1,47 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="cs">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <title>SimpleRecipes - Recept</title>
-    <link rel="stylesheet" href="assets/css/style.css" />
-  </head>
-  <body>
-    <div id="settingsContainer"></div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Detail receptu">
+  <title>Recept · SimpleRecipes</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="index.html" class="brand">SimpleRecipes</a>
+      <div class="topbar-actions">
+        <div class="seg" role="group" aria-label="Motiv">
+          <button type="button" data-theme-option="light" aria-label="Světlý motiv"></button>
+          <button type="button" data-theme-option="dark" aria-label="Tmavý motiv"></button>
+          <button type="button" data-theme-option="auto" aria-label="Podle zařízení"></button>
+        </div>
+        <button type="button" class="icon-btn" id="cartButton" aria-label="Nákupní seznam"><span data-icon="cart"></span><span class="badge" id="cartBadge" hidden>0</span></button>
+      </div>
+    </div>
+  </header>
 
-    <main class="container">
-      <article class="recipe">
-        <section class="recipe-hero">
-          <img id="recipeImage" alt="Náhled receptu" />
-        </section>
-        <section class="recipe-content">
-          <header>
-            <h1 id="recipeTitle">Načítám…</h1>
-            <p id="recipeDesc" class="card-meta"></p>
-            
-            <div id="recipeTags" class="tags"></div>
+  <main class="page recipe-page">
+    <div class="back-wrap">
+      <a class="back-link" href="index.html"><span data-icon="back"></span><span>Všechny recepty</span></a>
+    </div>
+    <article id="recipeArticle"></article>
+    <div class="error-box" id="recipeError" hidden>
+      <p>Recept se nepodařilo najít.</p>
+    </div>
+  </main>
 
-            <div class="wake-lock-control">
-              <label for="wakeLockToggle" class="wake-lock-label">
-                <span class="wake-lock-text">Zabránit uspání zařízení</span>
-                <button id="wakeLockToggle" class="wake-lock-toggle" role="switch" aria-checked="false">
-                  <span class="wake-lock-slider"></span>
-                </button>
-              </label>
-            </div>
-          </header>
-          <section class="ingredients">
-            <h3>Suroviny</h3>
-            <ul id="ingredientsList"></ul>
-          </section>
-          <section class="steps">
-            <h3>Postup</h3>
-            <ol id="stepsList"></ol>
-          </section>
-        </section>
-      </article>
-    </main>
-    <script src="assets/js/recipe.js" defer></script>
-  </body>
-  </html>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <a href="https://zurekmartin.cz">Martin Žůrek</a>
+      <span>&middot;</span>
+      <a href="https://github.com/zurekmartin/simplerecipes">GitHub</a>
+    </div>
+  </footer>
+
+  <div class="modal" id="cartModal" hidden role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+    <div class="modal-backdrop" data-close></div>
+    <aside class="modal-panel">
+      <div class="modal-head">
+        <h2 id="cartTitle">Nákupní seznam</h2>
+        <button type="button" class="icon-btn" data-close data-icon="close" aria-label="Zavřít"></button>
+      </div>
+      <div class="modal-body" id="cartBody"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn ghost" id="cartClear">Vyprázdnit</button>
+        <button type="button" class="btn primary" data-close>Hotovo</button>
+      </div>
+    </aside>
+  </div>
+
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

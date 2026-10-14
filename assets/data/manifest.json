@@ -1,0 +1,6 @@
+{
+  "recipes": [
+    "assets/data/pizza-dough.json",
+    "assets/data/pizza-sauce.json"
+  ]
+}
