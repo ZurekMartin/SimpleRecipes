@@ -6,12 +6,12 @@
   "servings": 4,
   "servings_unit": "ks",
   "tags": ["Slané"],
-  "ingredients_types": ["Jogurt", "Hladká mouka", "Sůl", "Kypřící prášek do pečiva"],
+  "ingredients_types": ["Řecký jogurt", "Hladká mouka", "Sůl", "Kypřící prášek do pečiva"],
   "ingredients": [
     { "name": "řeckého jogurtu", "amount": 250, "amount_max": 300, "unit": "g" },
     { "name": "hladké mouky", "amount": 250, "amount_max": 300, "unit": "g" },
-    { "name": "sůl", "amount": null, "unit": "špetka" },
-    { "name": "kypřícího prášku do pečiva", "amount": 1, "unit": "malá lžička" }
+    { "name": "kypřícího prášku do pečiva", "amount": 1, "unit": "čajová lžička" },
+    { "name": "soli", "amount": null, "unit": "špetka" }
   ],
   "steps": [
     "Odvážené suroviny vložíme do mísy robotu a pomalu mísíme, dokud nevznikne hladké těsto, které se nelepí na stěny."

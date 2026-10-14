@@ -6,9 +6,9 @@
   "servings": 4,
   "servings_unit": "porce",
   "tags": ["Slané"],
-  "ingredients_types": ["Smetana", "Mozzarella", "Česnek"],
+  "ingredients_types": ["Smetana ke šlehání 33%", "Mozzarella", "Česnek"],
   "ingredients": [
-    { "name": "smetany ke šlehání 33 %", "amount": 250, "unit": "g" },
+    { "name": "smetany ke šlehání 33%", "amount": 250, "unit": "g" },
     { "name": "mozzarelly", "amount": 1, "unit": "ks" },
     { "name": "česneku", "amount": 1, "unit": "stroužek" }
   ],

@@ -1,394 +1,293 @@
-const STORAGE_KEYS = {
+const STORAGE_KEYS = Object.freeze({
   theme: 'simplerecipes-theme',
   viewDesktop: 'simplerecipes-view-desktop',
   viewCompact: 'simplerecipes-view-compact',
   cart: 'simplerecipes-cart'
-};
+});
 
-const ICONS = {
-  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
-  auto: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
-  search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
-  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
-  list: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
-  sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
-  cart: '<path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 8H6"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>',
-  listPlus: '<path d="M4 6h10M4 12h10M4 18h6"/><path d="M18 14v6M15 17h6"/>',
-  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>',
-  minus: '<path d="M5 12h14"/>',
-  close: '<path d="M6 6l12 12M18 6L6 18"/>',
-  back: '<path d="M15 18l-6-6 6-6"/>',
-  screen: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'
-};
+const MQ = Object.freeze({
+  mobile: matchMedia('(max-width: 639px)'),
+  tablet: matchMedia('(max-width: 1023px)'),
+  light: matchMedia('(prefers-color-scheme: light)')
+});
 
-const THEME_ICONS = { light: 'sun', dark: 'moon', auto: 'auto' };
+const UNIT_ORDER = new Map([
+  ['g', 0], ['kg', 0], ['ml', 0], ['dl', 0], ['l', 0],
+  ['ks', 1], ['kus', 1], ['kusy', 1], ['stroužek', 1], ['stroužky', 1],
+  ['špetka', 2]
+]);
 
-const UNIT_ORDER = {
-  g: 0,
-  kg: 0,
-  ml: 0,
-  dl: 0,
-  l: 0,
-  ks: 1,
-  kus: 1,
-  kusy: 1,
-  'stroužek': 1,
-  'stroužky': 1,
-  'špetka': 2
-};
+const MASS_VOLUME_PATTERN = /lžič|lžíc|hrnek|šálek|ml|dl|cl|\bl\b|kg|\bg\b/;
 
-const PLACEHOLDER_WIDE = 'Hledat název, popis nebo štítek';
-const PLACEHOLDER_NARROW = 'Hledat';
+const PLACEHOLDER = Object.freeze({
+  wide: 'Hledat název, popis nebo štítek',
+  narrow: 'Hledat'
+});
 
-const compactQuery = window.matchMedia('(max-width: 1023px)');
-const lightQuery = window.matchMedia('(prefers-color-scheme: light)');
+const collator = new Intl.Collator('cs');
+const numberFormat = new Intl.NumberFormat('cs', { maximumFractionDigits: 2 });
+const escapeMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
-function svg(name) {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
-}
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
-function esc(value) {
-  return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[char]));
-}
+const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
-function readStorage(key, fallback) {
+const esc = value => String(value ?? '').replace(/[&<>"']/g, char => escapeMap[char]);
+
+const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
+
+const readStorage = (key, fallback) => {
   try {
     const raw = localStorage.getItem(key);
     return raw === null ? fallback : JSON.parse(raw);
   } catch {
     return fallback;
   }
-}
+};
 
-function writeStorage(key, value) {
+const writeStorage = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {}
-}
+};
 
-function formatNumber(number) {
-  return String(Math.round(number * 100) / 100).replace('.', ',');
-}
-
-function formatAmount(amount, max) {
+const formatAmount = (amount, max) => {
   if (typeof amount !== 'number') return '';
-  let text = formatNumber(amount);
-  if (typeof max === 'number' && max !== amount) text += '–' + formatNumber(max);
-  return text;
-}
+  const from = numberFormat.format(amount);
+  return typeof max === 'number' && max !== amount ? `${from}–${numberFormat.format(max)}` : from;
+};
 
-function formatLine(item) {
-  return [formatAmount(item.amount, item.amount_max), item.unit, item.name].filter(Boolean).join(' ');
-}
+const formatLine = ({ name, unit, amount, amount_max }) =>
+  [formatAmount(amount, amount_max), unit, name].filter(Boolean).join(' ');
 
-function capitalize(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function unitRank(unit) {
+const unitRank = unit => {
   const key = (unit || '').trim().toLowerCase();
-  return key in UNIT_ORDER ? UNIT_ORDER[key] : 3;
-}
+  if (MASS_VOLUME_PATTERN.test(key)) return 0;
+  return UNIT_ORDER.get(key) ?? 3;
+};
 
-function sortIngredients(items) {
-  return [...items].sort((a, b) => unitRank(a.unit) - unitRank(b.unit));
-}
+const itemKey = ({ name, unit }) => `${name.trim().toLowerCase()}|${(unit || '').trim().toLowerCase()}`;
 
-function scaleIngredient(ingredient, factor) {
-  return {
-    name: ingredient.name,
-    unit: ingredient.unit || '',
-    amount: typeof ingredient.amount === 'number' ? ingredient.amount * factor : null,
-    amount_max: typeof ingredient.amount_max === 'number' ? ingredient.amount_max * factor : null
-  };
-}
+const uniqueSorted = values => [...new Set(values)].sort(collator.compare);
 
-function uniqueSorted(values) {
-  return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'cs'));
-}
+const scaleIngredient = (ingredient, factor) => ({
+  name: ingredient.name,
+  unit: ingredient.unit || '',
+  amount: typeof ingredient.amount === 'number' ? ingredient.amount * factor : null,
+  amount_max: typeof ingredient.amount_max === 'number' ? ingredient.amount_max * factor : null
+});
 
-let recipesPromise = null;
-
-async function loadRecipes() {
-  const manifestResponse = await fetch('assets/data/manifest.json');
-  if (!manifestResponse.ok) throw new Error('Manifest se nepodařilo načíst.');
-  const manifest = await manifestResponse.json();
-  return Promise.all(manifest.recipes.map(async path => {
-    const response = await fetch(path);
-    if (!response.ok) throw new Error(`Recept ${path} se nepodařilo načíst.`);
-    return response.json();
-  }));
-}
-
-function getRecipes() {
-  if (!recipesPromise) recipesPromise = loadRecipes();
-  return recipesPromise;
-}
-
-function resolveTheme(preference) {
-  if (preference === 'light' || preference === 'dark') return preference;
-  return lightQuery.matches ? 'light' : 'dark';
-}
-
-function applyTheme() {
+const applyTheme = () => {
   const preference = readStorage(STORAGE_KEYS.theme, 'dark');
-  document.documentElement.dataset.theme = resolveTheme(preference);
-  document.querySelectorAll('[data-theme-option]').forEach(button => {
+  const resolved = preference === 'auto' ? (MQ.light.matches ? 'light' : 'dark') : preference;
+  document.documentElement.dataset.theme = resolved;
+  $$('[data-theme-option]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.themeOption === preference));
   });
-}
+};
 
-function initTheme() {
-  document.querySelectorAll('[data-theme-option]').forEach(button => {
-    const option = button.dataset.themeOption;
-    button.innerHTML = svg(THEME_ICONS[option]);
+const initTheme = () => {
+  $$('[data-theme-option]').forEach(button => {
     button.addEventListener('click', () => {
-      writeStorage(STORAGE_KEYS.theme, option);
+      writeStorage(STORAGE_KEYS.theme, button.dataset.themeOption);
       applyTheme();
     });
   });
-  lightQuery.addEventListener('change', () => {
+  MQ.light.addEventListener('change', () => {
     if (readStorage(STORAGE_KEYS.theme, 'dark') === 'auto') applyTheme();
   });
   applyTheme();
-}
+};
 
-function injectIcons() {
-  document.querySelectorAll('[data-icon]').forEach(element => {
-    element.innerHTML = svg(element.dataset.icon);
+let recipesPromise;
+
+const loadRecipes = async () => {
+  const manifest = await fetch('assets/data/manifest.json').then(response => {
+    if (!response.ok) throw new Error('Manifest se nepodařilo načíst.');
+    return response.json();
   });
-}
+  return Promise.all(manifest.recipes.map(path =>
+    fetch(path).then(response => {
+      if (!response.ok) throw new Error(`Recept ${path} se nepodařilo načíst.`);
+      return response.json();
+    })
+  ));
+};
 
-let cart = loadCart();
+const getRecipes = () => (recipesPromise ??= loadRecipes());
 
-function loadCart() {
+const emptyCart = () => ({ recipes: {}, checked: {} });
+
+let cart = (() => {
   const stored = readStorage(STORAGE_KEYS.cart, null);
-  if (!stored || typeof stored !== 'object') return { recipes: {}, checked: {} };
-  return { recipes: stored.recipes || {}, checked: stored.checked || {} };
-}
+  return stored && typeof stored === 'object'
+    ? { recipes: stored.recipes ?? {}, checked: stored.checked ?? {} }
+    : emptyCart();
+})();
 
-function persistCart() {
+const persistCart = () => {
   writeStorage(STORAGE_KEYS.cart, cart);
   updateCartBadge();
-}
+};
 
-function updateCartBadge() {
-  const badge = document.getElementById('cartBadge');
+const updateCartBadge = () => {
+  const badge = $('#cartBadge');
   if (!badge) return;
   const count = Object.keys(cart.recipes).length;
   badge.textContent = count;
   badge.hidden = count === 0;
-}
+};
 
-function addRecipeToCart(recipe, items) {
+const addRecipeToCart = (recipe, items) => {
   cart.recipes[recipe.id] = {
     id: recipe.id,
     title: recipe.title,
-    items: items.map(item => ({
-      name: item.name,
-      unit: item.unit,
-      amount: item.amount,
-      amount_max: item.amount_max
-    }))
+    items: items.map(({ name, unit, amount, amount_max }) => ({ name, unit, amount, amount_max }))
   };
   persistCart();
-}
+};
 
-function itemKey(item) {
-  return `${item.name.trim().toLowerCase()}|${(item.unit || '').trim().toLowerCase()}`;
-}
-
-function aggregateCart() {
+const aggregateCart = () => {
   const map = new Map();
   Object.values(cart.recipes).forEach(recipe => {
     recipe.items.forEach(item => {
       const key = itemKey(item);
-      const entry = map.get(key) || {
-        key,
-        name: item.name,
-        unit: item.unit || '',
-        amount: null,
-        amount_max: null,
-        parts: []
-      };
-      if (typeof item.amount === 'number') entry.amount = (entry.amount || 0) + item.amount;
+      const entry = map.get(key) ?? { key, name: item.name, unit: item.unit || '', amount: null, amount_max: null, parts: [] };
+      if (typeof item.amount === 'number') entry.amount = (entry.amount ?? 0) + item.amount;
       const high = typeof item.amount_max === 'number' ? item.amount_max : item.amount;
-      if (typeof high === 'number') entry.amount_max = (entry.amount_max || 0) + high;
-      entry.parts.push({ title: recipe.title, amount: item.amount, amount_max: item.amount_max });
+      if (typeof high === 'number') entry.amount_max = (entry.amount_max ?? 0) + high;
+      entry.parts.push({ title: recipe.title, amount: item.amount, amount_max: item.amount_max, unit: item.unit || '' });
       map.set(key, entry);
     });
   });
   return [...map.values()].sort((a, b) =>
-    (cart.checked[a.key] ? 1 : 0) - (cart.checked[b.key] ? 1 : 0)
+    Number(Boolean(cart.checked[a.key])) - Number(Boolean(cart.checked[b.key]))
     || unitRank(a.unit) - unitRank(b.unit)
-    || a.name.localeCompare(b.name, 'cs')
+    || collator.compare(a.name, b.name)
   );
-}
+};
 
-function renderCart() {
-  const body = document.getElementById('cartBody');
+const cartItemMarkup = entry => {
+  const checked = Boolean(cart.checked[entry.key]);
+  const multi = entry.parts.length > 1;
+  const title = capitalize(formatLine(entry));
+  const parts = multi ? `
+    <span class="item-divider"></span>
+    <span class="item-parts">${entry.parts.map(part => `
+      <span class="part-line">${esc([formatAmount(part.amount, part.amount_max), part.unit].filter(Boolean).join(' '))}<small>${esc(part.title)}</small></span>
+    `).join('')}</span>` : '';
+  return `
+    <label class="cart-item${checked ? ' is-checked' : ''}${multi ? ' is-multi' : ''}">
+      <input type="checkbox" data-key="${esc(entry.key)}" ${checked ? 'checked' : ''}>
+      <span class="item-card">
+        <span class="item-title">${esc(title)}</span>
+        ${parts}
+      </span>
+    </label>`;
+};
+
+const renderCart = () => {
+  const body = $('#cartBody');
   if (!body) return;
   const recipes = Object.values(cart.recipes);
   if (!recipes.length) {
-    body.innerHTML = '<div class="empty-cart"><p>Seznam je prázdný.</p><p>Suroviny přidáš z detailu receptu.</p></div>';
+    body.innerHTML = '<div class="empty-cart"><p>Seznam je prázdný.</p><p>Suroviny lze přidat z detailu receptu.</p></div>';
     return;
   }
   const sources = recipes.map(recipe => `
-    <span class="tag removable">${esc(recipe.title)}<button type="button" data-remove-recipe="${esc(recipe.id)}" aria-label="Odebrat recept">${svg('close')}</button></span>
+    <span class="tag removable">${esc(recipe.title)}<button type="button" data-remove-recipe="${esc(recipe.id)}" aria-label="Odebrat recept">${icon('close')}</button></span>
   `).join('');
-  const items = aggregateCart().map(entry => {
-    const checked = Boolean(cart.checked[entry.key]);
-    const multi = entry.parts.length > 1;
-    const title = capitalize(formatLine({ name: entry.name, unit: entry.unit, amount: entry.amount, amount_max: entry.amount_max }));
-    const parts = multi
-      ? `<span class="item-divider"></span><span class="item-parts">${entry.parts.map(part => `
-          <span class="part-line">${esc([formatAmount(part.amount, part.amount_max), entry.unit].filter(Boolean).join(' '))}<small>${esc(part.title)}</small></span>
-        `).join('')}</span>`
-      : '';
-    return `
-      <label class="cart-item${checked ? ' is-checked' : ''}${multi ? ' is-multi' : ''}">
-        <input type="checkbox" data-key="${esc(entry.key)}" ${checked ? 'checked' : ''}>
-        <span class="item-card">
-          <span class="item-title">${esc(title)}</span>
-          ${parts}
-        </span>
-      </label>
-    `;
-  }).join('');
-  body.innerHTML = `<div class="cart-sources">${sources}</div><div class="cart-list">${items}</div>`;
-}
-
-function openCart() {
-  const modal = document.getElementById('cartModal');
-  if (!modal) return;
-  renderCart();
-  modal.hidden = false;
-  document.body.classList.add('no-scroll');
-}
-
-function closeCart() {
-  const modal = document.getElementById('cartModal');
-  if (!modal || modal.hidden) return;
-  modal.hidden = true;
-  document.body.classList.remove('no-scroll');
-}
-
-function initCart() {
-  const cartButton = document.getElementById('cartButton');
-  if (cartButton) cartButton.addEventListener('click', openCart);
-
-  document.querySelectorAll('[data-close]').forEach(element => {
-    element.addEventListener('click', closeCart);
-  });
-
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') closeCart();
-  });
-
-  const body = document.getElementById('cartBody');
-  if (body) {
-    body.addEventListener('change', event => {
-      const checkbox = event.target.closest('input[data-key]');
-      if (!checkbox) return;
-      cart.checked[checkbox.dataset.key] = checkbox.checked;
-      persistCart();
-      renderCart();
-    });
-    body.addEventListener('click', event => {
-      const removeButton = event.target.closest('[data-remove-recipe]');
-      if (!removeButton) return;
-      delete cart.recipes[removeButton.dataset.removeRecipe];
-      persistCart();
-      renderCart();
-    });
-  }
-
-  const clearButton = document.getElementById('cartClear');
-  if (clearButton) {
-    clearButton.addEventListener('click', () => {
-      cart = { recipes: {}, checked: {} };
-      persistCart();
-      renderCart();
-    });
-  }
-
-  updateCartBadge();
-}
-
-const indexState = {
-  query: '',
-  tags: new Set(),
-  pantry: new Set()
+  body.innerHTML = `<div class="cart-sources">${sources}</div><div class="cart-list">${aggregateCart().map(cartItemMarkup).join('')}</div>`;
 };
 
-function renderChipGroup(container, values, selected, onChange) {
+const initCart = () => {
+  const dialog = $('#cartModal');
+  if (!dialog) return;
+  const body = $('#cartBody');
+
+  $('#cartButton')?.addEventListener('click', () => {
+    renderCart();
+    dialog.showModal();
+  });
+
+  dialog.addEventListener('click', event => {
+    if (event.target === dialog || event.target.closest('[data-close]')) dialog.close();
+  });
+
+  body.addEventListener('change', event => {
+    const checkbox = event.target.closest('input[data-key]');
+    if (!checkbox) return;
+    cart.checked[checkbox.dataset.key] = checkbox.checked;
+    persistCart();
+    renderCart();
+  });
+
+  body.addEventListener('click', event => {
+    const removeButton = event.target.closest('[data-remove-recipe]');
+    if (!removeButton) return;
+    delete cart.recipes[removeButton.dataset.removeRecipe];
+    persistCart();
+    renderCart();
+  });
+
+  $('#cartClear')?.addEventListener('click', () => {
+    cart = emptyCart();
+    persistCart();
+    renderCart();
+  });
+
+  updateCartBadge();
+};
+
+const indexState = { query: '', tags: new Set(), pantry: new Set() };
+
+const renderChipGroup = (container, values, selected, onChange) => {
   container.innerHTML = values.map(value =>
     `<button type="button" class="chip" data-value="${esc(value)}" aria-pressed="false">${esc(value)}</button>`
   ).join('');
   container.addEventListener('click', event => {
     const button = event.target.closest('button[data-value]');
     if (!button) return;
-    const value = button.dataset.value;
+    const { value } = button.dataset;
     if (selected.has(value)) selected.delete(value);
     else selected.add(value);
     button.setAttribute('aria-pressed', String(selected.has(value)));
     onChange();
   });
-}
+};
 
-function filterRecipes(recipes) {
+const filterRecipes = recipes => {
   const query = indexState.query.trim().toLowerCase();
-  return recipes.filter(recipe => {
-    const tags = recipe.tags || [];
-    const types = recipe.ingredients_types || [];
-    if (query) {
-      const haystack = [recipe.title, recipe.description, ...tags, ...types].join(' ').toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
+  return recipes.filter(({ title, description, tags = [], ingredients_types: types = [] }) => {
+    if (query && ![title, description, ...tags, ...types].join(' ').toLowerCase().includes(query)) return false;
     if (indexState.tags.size && !tags.some(tag => indexState.tags.has(tag))) return false;
     if (indexState.pantry.size && !types.some(type => indexState.pantry.has(type))) return false;
     return true;
   });
-}
+};
 
-function recipeCard(recipe, index) {
-  return `
-    <a class="recipe-card" style="--i:${index}" href="recipe.html?id=${encodeURIComponent(recipe.id)}">
-      <div class="card-media"><img src="${esc(recipe.image)}" alt="" loading="lazy"></div>
-      <div class="card-body">
-        <h2>${esc(recipe.title)}</h2>
-        <p>${esc(recipe.description)}</p>
-        <div class="tags">${(recipe.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}</div>
-      </div>
-    </a>
-  `;
-}
+const recipeCard = ({ id, image, title, description, tags = [] }, index) => `
+  <a class="recipe-card" style="--i:${index}" href="recipe.html?id=${encodeURIComponent(id)}">
+    <div class="card-media"><img src="${esc(image)}" alt="" loading="lazy"></div>
+    <div class="card-body">
+      <h2>${esc(title)}</h2>
+      <p>${esc(description)}</p>
+      <div class="tags">${tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}</div>
+    </div>
+  </a>`;
 
-function currentViewKey() {
-  return compactQuery.matches ? STORAGE_KEYS.viewCompact : STORAGE_KEYS.viewDesktop;
-}
+const viewKey = () => (MQ.mobile.matches ? STORAGE_KEYS.viewCompact : STORAGE_KEYS.viewDesktop);
 
-function currentView() {
-  return readStorage(currentViewKey(), compactQuery.matches ? 'list' : 'grid');
-}
+const currentView = () => readStorage(viewKey(), MQ.mobile.matches ? 'list' : 'grid');
 
-async function initIndex() {
-  const list = document.getElementById('recipeList');
-  const searchInput = document.getElementById('searchInput');
-  const tagChips = document.getElementById('tagChips');
-  const pantryChips = document.getElementById('pantryChips');
-  const advancedToggle = document.getElementById('advancedToggle');
-  const advancedPanel = document.getElementById('advancedPanel');
-  const emptyState = document.getElementById('emptyState');
-  const viewButtons = document.querySelectorAll('[data-view]');
+const initIndex = async () => {
+  const list = $('#recipeList');
+  const searchInput = $('#searchInput');
+  const advancedToggle = $('#advancedToggle');
+  const advancedPanel = $('#advancedPanel');
+  const emptyState = $('#emptyState');
+  const viewButtons = $$('[data-view]');
 
   let recipes;
   try {
@@ -398,17 +297,28 @@ async function initIndex() {
     return;
   }
 
-  renderChipGroup(tagChips, uniqueSorted(recipes.flatMap(recipe => recipe.tags || [])), indexState.tags, render);
-  renderChipGroup(pantryChips, uniqueSorted(recipes.flatMap(recipe => recipe.ingredients_types || [])), indexState.pantry, render);
+  const render = () => {
+    const filtered = filterRecipes(recipes);
+    list.innerHTML = filtered.map(recipeCard).join('');
+    emptyState.hidden = filtered.length > 0;
+  };
 
-  function syncPlaceholder() {
-    searchInput.placeholder = compactQuery.matches ? PLACEHOLDER_NARROW : PLACEHOLDER_WIDE;
-  }
+  const applyView = view => {
+    list.classList.toggle('grid', view !== 'list');
+    list.classList.toggle('list', view === 'list');
+    list.classList.toggle('compact', view === 'list' && MQ.mobile.matches);
+    viewButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
+  };
 
-  syncPlaceholder();
+  const syncPlaceholder = () => {
+    searchInput.placeholder = MQ.tablet.matches ? PLACEHOLDER.narrow : PLACEHOLDER.wide;
+  };
 
-  searchInput.addEventListener('input', event => {
-    indexState.query = event.target.value;
+  renderChipGroup($('#tagChips'), uniqueSorted(recipes.flatMap(recipe => recipe.tags ?? [])), indexState.tags, render);
+  renderChipGroup($('#pantryChips'), uniqueSorted(recipes.flatMap(recipe => recipe.ingredients_types ?? [])), indexState.pantry, render);
+
+  searchInput.addEventListener('input', ({ target }) => {
+    indexState.query = target.value;
     render();
   });
 
@@ -418,113 +328,68 @@ async function initIndex() {
     advancedToggle.setAttribute('aria-expanded', String(willOpen));
   });
 
-  function applyView(view) {
-    list.classList.toggle('grid', view !== 'list');
-    list.classList.toggle('list', view === 'list');
-    list.classList.toggle('compact', view === 'list' && compactQuery.matches);
-    viewButtons.forEach(button => {
-      button.setAttribute('aria-pressed', String(button.dataset.view === view));
-    });
-  }
-
   viewButtons.forEach(button => {
     button.addEventListener('click', () => {
-      writeStorage(currentViewKey(), button.dataset.view);
+      writeStorage(viewKey(), button.dataset.view);
       applyView(button.dataset.view);
     });
   });
 
-  compactQuery.addEventListener('change', () => {
-    syncPlaceholder();
+  MQ.tablet.addEventListener('change', syncPlaceholder);
+  MQ.mobile.addEventListener('change', () => {
     applyView(currentView());
   });
 
-  function render() {
-    const filtered = filterRecipes(recipes);
-    list.innerHTML = filtered.map(recipeCard).join('');
-    emptyState.hidden = filtered.length > 0;
-  }
-
+  syncPlaceholder();
   applyView(currentView());
   render();
-}
+};
 
-let wakeLock = null;
-let wakeWanted = false;
+const initWakeLock = button => {
+  let sentinel = null;
+  let wanted = false;
 
-function setPressed(button, pressed) {
-  button.setAttribute('aria-pressed', String(pressed));
-}
+  const setPressed = pressed => button.setAttribute('aria-pressed', String(pressed));
 
-async function acquireWakeLock(button) {
-  try {
-    wakeLock = await navigator.wakeLock.request('screen');
-    setPressed(button, true);
-    wakeLock.addEventListener('release', () => {
-      wakeLock = null;
-      setPressed(button, false);
-    });
-  } catch {
-    wakeLock = null;
-    setPressed(button, false);
-  }
-}
+  const acquire = async () => {
+    try {
+      sentinel = await navigator.wakeLock.request('screen');
+      setPressed(true);
+      sentinel.addEventListener('release', () => {
+        sentinel = null;
+        setPressed(false);
+      });
+    } catch {
+      sentinel = null;
+      setPressed(false);
+    }
+  };
 
-function initWakeLock(button) {
   button.addEventListener('click', async () => {
-    if (wakeWanted) {
-      wakeWanted = false;
-      if (wakeLock) await wakeLock.release();
-      setPressed(button, false);
+    wanted = !wanted;
+    if (wanted) {
+      await acquire();
     } else {
-      wakeWanted = true;
-      await acquireWakeLock(button);
+      await sentinel?.release();
+      setPressed(false);
     }
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && wakeWanted && !wakeLock) {
-      acquireWakeLock(button);
-    }
+    if (document.visibilityState === 'visible' && wanted && !sentinel) acquire();
   });
-}
+};
 
-async function initRecipe() {
-  const article = document.getElementById('recipeArticle');
-  const errorBox = document.getElementById('recipeError');
-  const id = new URLSearchParams(window.location.search).get('id');
+const addButtonMarkup = done => `${icon(done ? 'check' : 'list-plus')}<span class="btn-label">${done ? 'Přidáno do seznamu' : 'Přidat do seznamu'}</span>`;
 
-  let recipes;
-  try {
-    recipes = await getRecipes();
-  } catch {
-    errorBox.hidden = false;
-    return;
-  }
-
-  const recipe = recipes.find(item => item.id === id);
-  if (!recipe) {
-    errorBox.hidden = false;
-    return;
-  }
-
-  document.title = `${recipe.title} · SimpleRecipes`;
-  renderRecipe(recipe, article);
-}
-
-function addButtonMarkup(done) {
-  return `${svg(done ? 'check' : 'listPlus')}<span class="btn-label">${done ? 'Přidáno do seznamu' : 'Přidat do seznamu'}</span>`;
-}
-
-function renderRecipe(recipe, root) {
+const renderRecipe = (recipe, root) => {
   const base = recipe.servings || 1;
   const unit = recipe.servings_unit || 'porce';
   let current = base;
 
-  const tags = (recipe.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('');
-  const steps = (recipe.steps || []).map((step, index) => `
-    <li style="--i:${index}"><span class="step-no">${index + 1}</span><p>${esc(step)}</p></li>
-  `).join('');
+  const tags = (recipe.tags ?? []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('');
+  const steps = (recipe.steps ?? []).map((step, index) => `
+    <li style="--i:${index}"><span class="step-no">${index + 1}</span><p>${esc(step)}</p></li>`).join('');
 
   root.innerHTML = `
     <section class="recipe-hero">
@@ -541,53 +406,51 @@ function renderRecipe(recipe, root) {
           <h2>Suroviny</h2>
           <div class="servings">
             <div class="stepper" role="group" aria-label="Počet">
-              <button type="button" class="step-btn" data-step="-1" aria-label="Méně">${svg('minus')}</button>
-              <output id="servingsValue" aria-live="polite">${base}</output>
-              <button type="button" class="step-btn" data-step="1" aria-label="Více">${svg('plus')}</button>
+              <button type="button" class="step-btn" data-step="-1" aria-label="Méně">${icon('minus')}</button>
+              <output aria-live="polite">${base}</output>
+              <button type="button" class="step-btn" data-step="1" aria-label="Více">${icon('plus')}</button>
             </div>
             <span class="servings-unit">${esc(unit)}</span>
           </div>
         </div>
-        <ul class="ingredient-list" id="ingredientList"></ul>
+        <ul class="ingredient-list"></ul>
         <div class="actions">
-          <button type="button" class="btn ghost btn-wake" id="wakeToggle" aria-pressed="false">${svg('screen')}<span class="btn-label">Nezhasínat displej</span></button>
-          <button type="button" class="btn primary btn-add" id="addToCart" aria-label="Přidat do seznamu">${addButtonMarkup(false)}</button>
+          <button type="button" class="btn ghost btn-wake" aria-pressed="false">${icon('screen')}<span class="btn-label">Nezhasínat displej</span></button>
+          <button type="button" class="btn primary btn-add" aria-label="Přidat do seznamu">${addButtonMarkup(false)}</button>
         </div>
       </section>
       <section class="panel steps-panel">
         <h2>Postup</h2>
         <ol class="steps">${steps}</ol>
       </section>
-    </div>
-  `;
+    </div>`;
 
-  const output = root.querySelector('#servingsValue');
-  const ingredientList = root.querySelector('#ingredientList');
-  const addButton = root.querySelector('#addToCart');
-  const wakeButton = root.querySelector('#wakeToggle');
+  const output = $('output', root);
+  const ingredientList = $('.ingredient-list', root);
+  const addButton = $('.btn-add', root);
+  const wakeButton = $('.btn-wake', root);
 
-  function currentItems() {
+  const currentItems = () => {
     const factor = current / base;
     return recipe.ingredients.map(ingredient => scaleIngredient(ingredient, factor));
-  }
+  };
 
-  function drawIngredients() {
+  const drawIngredients = () => {
     output.textContent = String(current);
-    ingredientList.innerHTML = sortIngredients(currentItems()).map(item => `
+    ingredientList.innerHTML = currentItems().map(item => `
       <li>
         <span class="ing-qty">${esc(formatAmount(item.amount, item.amount_max))}</span>
         <span class="ing-name">${esc([item.unit, item.name].filter(Boolean).join(' '))}</span>
-      </li>
-    `).join('');
-  }
+      </li>`).join('');
+  };
 
-  root.querySelectorAll('[data-step]').forEach(button => {
-    button.addEventListener('click', () => {
-      const next = current + Number(button.dataset.step);
-      if (next < 1 || next > 20) return;
-      current = next;
-      drawIngredients();
-    });
+  root.addEventListener('click', event => {
+    const stepButton = event.target.closest('[data-step]');
+    if (!stepButton) return;
+    const next = current + Number(stepButton.dataset.step);
+    if (next < 1 || next > 20) return;
+    current = next;
+    drawIngredients();
   });
 
   addButton.addEventListener('click', () => {
@@ -605,15 +468,33 @@ function renderRecipe(recipe, root) {
   }
 
   drawIngredients();
-}
+};
 
-function initCommon() {
-  initTheme();
-  injectIcons();
-  initCart();
-}
+const initRecipe = async () => {
+  const article = $('#recipeArticle');
+  const errorBox = $('#recipeError');
+  const id = new URLSearchParams(location.search).get('id');
 
-initCommon();
+  let recipes;
+  try {
+    recipes = await getRecipes();
+  } catch {
+    errorBox.hidden = false;
+    return;
+  }
 
-if (document.getElementById('recipeList')) initIndex();
-if (document.getElementById('recipeArticle')) initRecipe();
+  const recipe = recipes.find(item => item.id === id);
+  if (!recipe) {
+    errorBox.hidden = false;
+    return;
+  }
+
+  document.title = `${recipe.title} · SimpleRecipes`;
+  renderRecipe(recipe, article);
+};
+
+initTheme();
+initCart();
+
+if ($('#recipeList')) initIndex();
+if ($('#recipeArticle')) initRecipe();

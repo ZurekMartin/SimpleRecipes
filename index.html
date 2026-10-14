@@ -1,23 +1,40 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="cs" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <meta name="description" content="SimpleRecipes">
   <title>SimpleRecipes</title>
   <link rel="stylesheet" href="assets/css/styles.css">
+  <script src="assets/js/script.js" defer></script>
 </head>
 <body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 8H6"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  </svg>
+
   <header class="topbar">
     <div class="container topbar-inner">
       <a href="index.html" class="brand">SimpleRecipes</a>
       <div class="topbar-actions">
         <div class="seg" role="group" aria-label="Motiv">
-          <button type="button" data-theme-option="light" aria-label="Světlý motiv"></button>
-          <button type="button" data-theme-option="dark" aria-label="Tmavý motiv"></button>
-          <button type="button" data-theme-option="auto" aria-label="Podle zařízení"></button>
+          <button type="button" data-theme-option="light" aria-label="Světlý motiv"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
+          <button type="button" data-theme-option="dark" aria-label="Tmavý motiv"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg></button>
+          <button type="button" data-theme-option="auto" aria-label="Podle zařízení"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg></button>
         </div>
-        <button type="button" class="icon-btn" id="cartButton" aria-label="Nákupní seznam"><span data-icon="cart"></span><span class="badge" id="cartBadge" hidden>0</span></button>
+        <button type="button" class="icon-btn" id="cartButton" aria-label="Nákupní seznam">
+          <svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg>
+          <span class="badge" id="cartBadge" hidden>0</span>
+        </button>
       </div>
     </div>
   </header>
@@ -25,14 +42,16 @@
   <main class="page">
     <div class="toolbar">
       <label class="search">
-        <span data-icon="search"></span>
+        <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
         <input type="search" id="searchInput" placeholder="Hledat název, popis nebo štítek" autocomplete="off">
       </label>
       <div class="toolbar-actions">
-        <button type="button" class="icon-btn" id="advancedToggle" data-icon="sliders" aria-label="Pokročilé filtry" aria-expanded="false" aria-controls="advancedPanel"></button>
+        <button type="button" class="icon-btn" id="advancedToggle" aria-label="Pokročilé filtry" aria-expanded="false" aria-controls="advancedPanel">
+          <svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg>
+        </button>
         <div class="seg" role="group" aria-label="Zobrazení">
-          <button type="button" data-view="list" data-icon="list" aria-label="Seznam"></button>
-          <button type="button" data-view="grid" data-icon="grid" aria-label="Karty"></button>
+          <button type="button" data-view="list" aria-label="Seznam"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></button>
+          <button type="button" data-view="grid" aria-label="Karty"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></button>
         </div>
       </div>
     </div>
@@ -54,27 +73,22 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <a href="https://zurekmartin.cz">Martin Žůrek</a>
-      <span>&middot;</span>
-      <a href="https://github.com/zurekmartin/simplerecipes">GitHub</a>
+      <a href="https://www.zurekmartin.cz">Martin Žůrek</a>
+      <span aria-hidden="true">&middot;</span>
+      <a href="https://github.com/ZurekMartin/SimpleRecipes">GitHub</a>
     </div>
   </footer>
 
-  <div class="modal" id="cartModal" hidden role="dialog" aria-modal="true" aria-labelledby="cartTitle">
-    <div class="modal-backdrop" data-close></div>
-    <aside class="modal-panel">
-      <div class="modal-head">
-        <h2 id="cartTitle">Nákupní seznam</h2>
-        <button type="button" class="icon-btn" data-close data-icon="close" aria-label="Zavřít"></button>
-      </div>
-      <div class="modal-body" id="cartBody"></div>
-      <div class="modal-foot">
-        <button type="button" class="btn ghost" id="cartClear">Vyprázdnit</button>
-        <button type="button" class="btn primary" data-close>Hotovo</button>
-      </div>
-    </aside>
-  </div>
-
-  <script src="assets/js/script.js"></script>
+  <dialog class="cart" id="cartModal" aria-labelledby="cartTitle">
+    <header class="cart-head">
+      <h2 id="cartTitle">Nákupní seznam</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Zavřít"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="cart-body" id="cartBody"></div>
+    <footer class="cart-foot">
+      <button type="button" class="btn ghost" id="cartClear">Vyprázdnit</button>
+      <button type="button" class="btn primary" data-close>Hotovo</button>
+    </footer>
+  </dialog>
 </body>
 </html>
