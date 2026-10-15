@@ -1,0 +1,135 @@
+{
+  "units": {
+    "g": {
+      "kind": "mass",
+      "forms": {
+        "one": "g",
+        "few": "g",
+        "many": "g",
+        "other": "g"
+      }
+    },
+    "kg": {
+      "kind": "mass",
+      "forms": {
+        "one": "kg",
+        "few": "kg",
+        "many": "kg",
+        "other": "kg"
+      }
+    },
+    "ml": {
+      "kind": "volume",
+      "forms": {
+        "one": "ml",
+        "few": "ml",
+        "many": "ml",
+        "other": "ml"
+      }
+    },
+    "l": {
+      "kind": "volume",
+      "forms": {
+        "one": "l",
+        "few": "l",
+        "many": "l",
+        "other": "l"
+      }
+    },
+    "polevkova-lzice": {
+      "kind": "spoon",
+      "forms": {
+        "one": "polévková lžíce",
+        "few": "polévkové lžíce",
+        "many": "polévkové lžíce",
+        "other": "polévkových lžic"
+      }
+    },
+    "cajova-lzicka": {
+      "kind": "spoon",
+      "forms": {
+        "one": "čajová lžička",
+        "few": "čajové lžičky",
+        "many": "čajové lžičky",
+        "other": "čajových lžiček"
+      }
+    },
+    "strouzek": {
+      "kind": "count",
+      "forms": {
+        "one": "stroužek",
+        "few": "stroužky",
+        "many": "stroužku",
+        "other": "stroužků"
+      }
+    },
+    "spetka": {
+      "kind": "pinch",
+      "forms": {
+        "one": "špetka",
+        "few": "špetky",
+        "many": "špetky",
+        "other": "špetek"
+      }
+    }
+  },
+  "nouns": {
+    "porce": {
+      "forms": {
+        "one": "porce",
+        "few": "porce",
+        "many": "porce",
+        "other": "porcí"
+      }
+    },
+    "pizza": {
+      "forms": {
+        "one": "pizza",
+        "few": "pizzy",
+        "many": "pizzy",
+        "other": "pizz"
+      }
+    },
+    "kus": {
+      "forms": {
+        "one": "kus",
+        "few": "kusy",
+        "many": "kusy",
+        "other": "kusů"
+      }
+    },
+    "mozzarella": {
+      "forms": {
+        "one": "mozzarella",
+        "few": "mozzarelly",
+        "many": "mozzarelly",
+        "other": "mozzarell"
+      }
+    },
+    "hermelin": {
+      "forms": {
+        "one": "hermelín",
+        "few": "hermelíny",
+        "many": "hermelínu",
+        "other": "hermelínů"
+      }
+    },
+    "vejce": {
+      "forms": {
+        "one": "vejce",
+        "few": "vejce",
+        "many": "vejce",
+        "other": "vajec"
+      }
+    },
+    "cibule": {
+      "forms": {
+        "one": "cibule",
+        "few": "cibule",
+        "many": "cibule",
+        "other": "cibulí"
+      },
+      "small": "malá cibule"
+    }
+  }
+}

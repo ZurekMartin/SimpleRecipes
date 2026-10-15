@@ -11,22 +11,18 @@ const MQ = Object.freeze({
   light: matchMedia('(prefers-color-scheme: light)')
 });
 
-const UNIT_ORDER = new Map([
-  ['g', 0], ['kg', 0], ['ml', 0], ['dl', 0], ['l', 0],
-  ['ks', 1], ['kus', 1], ['kusy', 1], ['stroužek', 1], ['stroužky', 1],
-  ['špetka', 2]
-]);
-
-const MASS_VOLUME_PATTERN = /lžič|lžíc|hrnek|šálek|ml|dl|cl|\bl\b|kg|\bg\b/;
+const KIND_RANK = new Map([['mass', 0], ['volume', 0], ['spoon', 1], ['count', 1], ['pinch', 2]]);
 
 const PLACEHOLDER = Object.freeze({
   wide: 'Hledat název, popis nebo štítek',
-  narrow: 'Hledat'
+  narrow: 'Hledat recept'
 });
 
 const collator = new Intl.Collator('cs');
 const numberFormat = new Intl.NumberFormat('cs', { maximumFractionDigits: 2 });
+const pluralRules = new Intl.PluralRules('cs');
 const escapeMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const GLYPHS = Object.freeze({ 0.25: '¼', 0.5: '½', 0.75: '¾' });
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -56,31 +52,106 @@ const writeStorage = (key, value) => {
   } catch {}
 };
 
-const formatAmount = (amount, max) => {
-  if (typeof amount !== 'number') return '';
-  const from = numberFormat.format(amount);
-  return typeof max === 'number' && max !== amount ? `${from}–${numberFormat.format(max)}` : from;
+const formatCount = value => {
+  const whole = Math.floor(value + 1e-9);
+  const rest = Math.round((value - whole) * 100) / 100;
+  if (!rest) return numberFormat.format(whole);
+  const glyph = GLYPHS[rest];
+  if (!glyph) return numberFormat.format(value);
+  return whole ? `${whole}${glyph}` : glyph;
 };
 
-const formatLine = ({ name, unit, amount, amount_max }) =>
-  [formatAmount(amount, amount_max), unit, name].filter(Boolean).join(' ');
-
-const unitRank = unit => {
-  const key = (unit || '').trim().toLowerCase();
-  if (MASS_VOLUME_PATTERN.test(key)) return 0;
-  return UNIT_ORDER.get(key) ?? 3;
+const niceRound = value => {
+  const step = value < 10 ? 1 : value < 100 ? 5 : value < 500 ? 10 : 50;
+  return Math.max(step, Math.round(value / step) * step);
 };
 
-const itemKey = ({ name, unit }) => `${name.trim().toLowerCase()}|${(unit || '').trim().toLowerCase()}`;
+const roundQuantity = (value, kind, small) => {
+  if (value === null) return null;
+  if (kind === 'mass' || kind === 'volume') return niceRound(value);
+  if (kind === 'spoon') return Math.max(0.5, Math.round(value * 2) / 2);
+  if (kind === 'count') return small ? Math.round(value * 100) / 100 : Math.max(1, Math.round(value));
+  return value;
+};
 
-const uniqueSorted = values => [...new Set(values)].sort(collator.compare);
+const scaleRange = (ingredient, kind, servings, base) => {
+  const table = ingredient.scale && typeof ingredient.scale === 'object' ? ingredient.scale.table : null;
+  const hit = table?.[String(servings)];
+  if (hit !== undefined) return Array.isArray(hit) ? hit : [hit, null];
+  if (ingredient.scale === 'fixed') return [ingredient.amount ?? null, ingredient.amount_max ?? null];
+  const round = value => (typeof value === 'number' ? roundQuantity(value * servings / base, kind, ingredient.small === true) : null);
+  return [round(ingredient.amount), round(ingredient.amount_max)];
+};
 
-const scaleIngredient = (ingredient, factor) => ({
-  name: ingredient.name,
-  unit: ingredient.unit || '',
-  amount: typeof ingredient.amount === 'number' ? ingredient.amount * factor : null,
-  amount_max: typeof ingredient.amount_max === 'number' ? ingredient.amount_max * factor : null
-});
+const scaledIngredients = (recipe, servings, dictionary) => {
+  const base = recipe.servings || 1;
+  return recipe.ingredients.map(ingredient => {
+    const kind = ingredient.ref ? 'count' : (dictionary.units[ingredient.unit]?.kind ?? 'mass');
+    const [amount, amount_max] = scaleRange(ingredient, kind, servings, base);
+    return {
+      key: `${ingredient.ref ?? normalizeText(ingredient.name ?? '')}|${ingredient.unit ?? ''}`,
+      ref: ingredient.ref ?? null,
+      name: ingredient.name ?? null,
+      unit: ingredient.unit ?? null,
+      small: ingredient.small === true,
+      amount,
+      amount_max
+    };
+  });
+};
+
+const nounForm = (dictionary, key, n) => dictionary.nouns[key].forms[pluralRules.select(n)];
+
+const toDisplayUnit = (value, unit) => {
+  if (unit === 'g' && value >= 1000) return { value: value / 1000, unit: 'kg' };
+  if (unit === 'ml' && value >= 1000) return { value: value / 1000, unit: 'l' };
+  return { value, unit };
+};
+
+const describeCounted = (item, dictionary) => {
+  const noun = dictionary.nouns[item.ref];
+  if (typeof item.amount !== 'number') return { number: '', unit: '', label: nounForm(dictionary, item.ref, 1) };
+  const ranged = typeof item.amount_max === 'number' && item.amount_max !== item.amount;
+  const top = ranged ? item.amount_max : item.amount;
+  if (item.small) {
+    const whole = Math.floor(top + 1e-9);
+    if (whole < 1) return { number: '1', unit: '', label: noun.small ?? nounForm(dictionary, item.ref, 1) };
+    const number = ranged
+      ? `${Math.floor(item.amount + 1e-9)}–${Math.floor(item.amount_max + 1e-9)}`
+      : formatCount(whole);
+    return { number, unit: '', label: nounForm(dictionary, item.ref, whole) };
+  }
+  const number = ranged
+    ? `${formatCount(item.amount)}–${formatCount(item.amount_max)}`
+    : formatCount(item.amount);
+  return { number, unit: '', label: nounForm(dictionary, item.ref, top) };
+};
+
+const describeItem = (item, dictionary) => {
+  if (item.custom) return { number: '', unit: '', label: item.name };
+  if (item.ref) return describeCounted(item, dictionary);
+  const hasAmount = typeof item.amount === 'number';
+  const ranged = typeof item.amount_max === 'number' && item.amount_max !== item.amount;
+  const top = ranged ? item.amount_max : item.amount;
+  const converted = hasAmount ? toDisplayUnit(top, item.unit) : { value: null, unit: item.unit };
+  const factor = hasAmount && converted.unit !== item.unit ? 0.001 : 1;
+  const n = hasAmount ? top * factor : 1;
+  const number = !hasAmount
+    ? ''
+    : ranged
+      ? `${formatCount(item.amount * factor)}–${formatCount(item.amount_max * factor)}`
+      : formatCount(item.amount * factor);
+  return {
+    number,
+    unit: converted.unit ? dictionary.units[converted.unit].forms[pluralRules.select(n)] : '',
+    label: item.name ?? ''
+  };
+};
+
+const lineText = description =>
+  [description.number, description.unit, description.label].filter(Boolean).join(' ');
+
+const plainText = description => lineText(description).replace(/ /g, ' ');
 
 const applyTheme = () => {
   const preference = readStorage(STORAGE_KEYS.theme, 'dark');
@@ -104,22 +175,26 @@ const initTheme = () => {
   applyTheme();
 };
 
-let recipesPromise;
-
-const loadRecipes = async () => {
-  const manifest = await fetch('assets/data/manifest.json').then(response => {
-    if (!response.ok) throw new Error('Manifest se nepodařilo načíst.');
-    return response.json();
-  });
-  return Promise.all(manifest.recipes.map(path =>
-    fetch(path).then(response => {
-      if (!response.ok) throw new Error(`Recept ${path} se nepodařilo načíst.`);
-      return response.json();
-    })
-  ));
+const fetchJson = async (path, errorMessage) => {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(errorMessage);
+  return response.json();
 };
 
-const getRecipes = () => (recipesPromise ??= loadRecipes());
+const loadRecipes = async () => {
+  const manifest = await fetchJson('assets/data/manifest.json', 'Manifest se nepodařilo načíst.');
+  return Promise.all(manifest.recipes.map(path => fetchJson(path, `Recept ${path} se nepodařilo načíst.`)));
+};
+
+const loadDictionary = () => fetchJson('assets/data/lexicon.json', 'Slovník se nepodařilo načíst.');
+
+let dataPromise;
+let dictionary = null;
+
+const getData = () => (dataPromise ??= Promise.all([loadRecipes(), loadDictionary()]).then(([recipes, loaded]) => {
+  dictionary = loaded;
+  return { recipes, dictionary: loaded };
+}));
 
 const emptyCart = () => ({ recipes: {}, checked: {}, custom: [] });
 
@@ -147,44 +222,54 @@ const addRecipeToCart = (recipe, items) => {
   cart.recipes[recipe.id] = {
     id: recipe.id,
     title: recipe.title,
-    items: items.map(({ name, unit, amount, amount_max }) => ({ name, unit, amount, amount_max }))
+    items: items.map(({ key, ref, name, unit, small, amount, amount_max }) => ({ key, ref, name, unit, small, amount, amount_max }))
   };
   persistCart();
 };
 
-const aggregateCart = () => {
+const itemRank = (entry, dict) => {
+  if (entry.custom) return 4;
+  if (entry.ref) return 1;
+  if (!entry.unit) return 3;
+  return KIND_RANK.get(dict.units[entry.unit].kind) ?? 3;
+};
+
+const aggregateCart = dict => {
   const map = new Map();
   Object.values(cart.recipes).forEach(recipe => {
     recipe.items.forEach(item => {
-      const key = itemKey(item);
-      const entry = map.get(key) ?? { key, name: item.name, unit: item.unit || '', amount: null, amount_max: null, parts: [] };
+      const entry = map.get(item.key) ?? { key: item.key, ref: item.ref, name: item.name, unit: item.unit, small: item.small, amount: null, amount_max: null, parts: [] };
       if (typeof item.amount === 'number') entry.amount = (entry.amount ?? 0) + item.amount;
       const high = typeof item.amount_max === 'number' ? item.amount_max : item.amount;
       if (typeof high === 'number') entry.amount_max = (entry.amount_max ?? 0) + high;
-      entry.parts.push({ title: recipe.title, amount: item.amount, amount_max: item.amount_max, unit: item.unit || '' });
-      map.set(key, entry);
+      entry.parts.push({ title: recipe.title, item });
+      map.set(item.key, entry);
     });
   });
   cart.custom.forEach(({ name }) => {
     const key = customKey(name);
-    map.set(key, { key, name, unit: '', amount: null, amount_max: null, parts: [], custom: true });
+    map.set(key, { key, name, custom: true, amount: null, amount_max: null, parts: [] });
   });
   return [...map.values()].sort((a, b) =>
     Number(Boolean(cart.checked[a.key])) - Number(Boolean(cart.checked[b.key]))
-    || unitRank(a.unit) - unitRank(b.unit)
-    || collator.compare(a.name, b.name)
+    || itemRank(a, dict) - itemRank(b, dict)
+    || collator.compare(describeItem(a, dict).label, describeItem(b, dict).label)
   );
 };
 
-const cartItemMarkup = entry => {
+const cartItemMarkup = (entry, dict) => {
   const checked = Boolean(cart.checked[entry.key]);
   const multi = entry.parts.length > 1;
-  const title = capitalize(formatLine(entry));
+  const title = capitalize(lineText(describeItem(entry, dict)));
   const parts = multi ? `
     <span class="item-divider"></span>
-    <span class="item-parts">${entry.parts.map(part => `
-      <span class="part-line">${esc([formatAmount(part.amount, part.amount_max), part.unit].filter(Boolean).join(' '))}<small>${esc(part.title)}</small></span>
-    `).join('')}</span>` : '';
+    <span class="item-parts">${entry.parts.map(part => {
+      const described = describeItem(part.item, dict);
+      const text = part.item.ref ? plainText(described) : [described.number, described.unit].filter(Boolean).join(' ');
+      return `
+      <span class="part-line">${esc(text)}<small>${esc(part.title)}</small></span>
+    `;
+    }).join('')}</span>` : '';
   const remove = entry.custom
     ? `<button type="button" class="item-remove" data-remove-custom="${esc(entry.key)}" aria-label="Odebrat položku">${icon('close')}</button>`
     : '';
@@ -204,6 +289,12 @@ const cartItemMarkup = entry => {
 const renderCart = () => {
   const body = $('#cartBody');
   if (!body) return;
+  if (!dictionary) {
+    getData().then(renderCart).catch(() => {
+      body.innerHTML = '<div class="empty-cart"><p>Seznam se nepodařilo zobrazit.</p></div>';
+    });
+    return;
+  }
   const recipes = Object.values(cart.recipes);
   if (!recipes.length && !cart.custom.length) {
     body.innerHTML = '<div class="empty-cart"><p>Seznam je prázdný.</p><p>Suroviny lze přidat z detailu receptu nebo vyhledat výše.</p></div>';
@@ -212,36 +303,34 @@ const renderCart = () => {
   const sources = recipes.map(recipe => `
     <span class="tag removable">${esc(recipe.title)}<button type="button" data-remove-recipe="${esc(recipe.id)}" aria-label="Odebrat recept">${icon('close')}</button></span>
   `).join('');
-  body.innerHTML = `${sources ? `<div class="cart-sources">${sources}</div>` : ''}<div class="cart-list">${aggregateCart().map(cartItemMarkup).join('')}</div>`;
+  body.innerHTML = `${sources ? `<div class="cart-sources">${sources}</div>` : ''}<div class="cart-list">${aggregateCart(dictionary).map(entry => cartItemMarkup(entry, dictionary)).join('')}</div>`;
 };
 
-const shoppingListText = () => {
-  const lines = aggregateCart()
+const shoppingListText = dict => {
+  const lines = aggregateCart(dict)
     .filter(entry => !cart.checked[entry.key])
-    .map(entry => `* ${capitalize(formatLine(entry))}`);
-  return lines.length ? ['Nákupní seznam:', '', ...lines].join('\n') : '';
+    .map(entry => `* ${capitalize(plainText(describeItem(entry, dict)))}`);
+  return lines.length ? ['Nákupní seznam:', ...lines].join('\n') : '';
 };
 
 const shareShoppingList = async event => {
   const button = event.currentTarget;
-  const text = shoppingListText();
-  if (!text) return;
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: 'Nákupní seznam', text });
-    } catch {}
+  let text = '';
+  try {
+    text = shoppingListText((await getData()).dictionary);
+  } catch {
     return;
   }
-  try {
-    await navigator.clipboard.writeText(text);
-    flashButton(button, icon('copy'));
-  } catch {}
+  if (!text) return;
+  await shareContent({ title: 'Nákupní seznam', text }, button);
 };
 
 const initCart = () => {
   const dialog = $('#cartModal');
   if (!dialog) return;
   const body = $('#cartBody');
+
+  getData().catch(() => {});
 
   $('#cartButton')?.addEventListener('click', () => {
     renderCart();
@@ -290,9 +379,7 @@ const initCart = () => {
 
 let staplesPromise;
 
-const getStaples = () => (staplesPromise ??= fetch('assets/data/staples.json')
-  .then(response => (response.ok ? response.json() : []))
-  .catch(() => []));
+const getStaples = () => (staplesPromise ??= fetchJson('assets/data/staples.json', 'Zásobník se nepodařilo načíst.').catch(() => []));
 
 const initCartAdd = async () => {
   const form = $('#cartAddForm');
@@ -379,33 +466,45 @@ const recipeUrl = id => new URL(`recipe.html?id=${encodeURIComponent(id)}`, loca
 const shareButton = ({ id, title }) =>
   `<button type="button" class="share-btn" data-share="${esc(id)}" aria-label="Sdílet recept: ${esc(title)}" title="Sdílet">${icon('share')}</button>`;
 
+const flashes = new WeakMap();
+
 const flashButton = (button, markup) => {
-  const original = button.innerHTML;
+  const active = flashes.get(button);
+  clearTimeout(active?.timer);
+  const original = active?.original ?? button.innerHTML;
   button.innerHTML = markup;
-  setTimeout(() => {
-    button.innerHTML = original;
-  }, 1600);
+  flashes.set(button, {
+    original,
+    timer: setTimeout(() => {
+      button.innerHTML = original;
+      flashes.delete(button);
+    }, 1600)
+  });
 };
 
-const shareRecipe = async (recipe, button) => {
-  const url = recipeUrl(recipe.id);
+const shareContent = async ({ title, text, url }, button) => {
   if (navigator.share) {
     try {
-      await navigator.share({ title: recipe.title, text: recipe.description, url });
+      await navigator.share({ title, text, url });
     } catch {}
     return;
   }
   try {
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(url ?? text);
     flashButton(button, icon('copy'));
   } catch {}
 };
+
+const shareRecipe = (recipe, button) => shareContent(
+  { title: recipe.title, text: recipe.description, url: recipeUrl(recipe.id) },
+  button
+);
 
 const setMeta = (selector, attribute, value) => {
   document.querySelector(selector)?.setAttribute(attribute, value);
 };
 
-const recipeSchema = (recipe, url) => {
+const recipeSchema = (recipe, url, dict) => {
   const script = document.createElement('script');
   script.type = 'application/ld+json';
   script.textContent = JSON.stringify({
@@ -415,9 +514,9 @@ const recipeSchema = (recipe, url) => {
     description: recipe.description,
     image: recipe.image,
     url,
-    recipeYield: `${recipe.servings} ${recipe.servings_unit || 'porce'}`,
+    recipeYield: `${recipe.servings} ${nounForm(dict, recipe.servings_unit, recipe.servings)}`,
     recipeCategory: (recipe.tags ?? []).join(', ') || undefined,
-    recipeIngredient: recipe.ingredients.map(item => formatLine(item)),
+    recipeIngredient: scaledIngredients(recipe, recipe.servings, dict).map(item => plainText(describeItem(item, dict))),
     recipeInstructions: (recipe.steps ?? []).map(text => ({ '@type': 'HowToStep', text })),
     inLanguage: 'cs'
   });
@@ -427,7 +526,7 @@ const recipeSchema = (recipe, url) => {
 const recipeCard = ({ id, image, title, description, tags = [] }, index) => `
   <article class="recipe-card" style="--i:${index}">
     <a class="card-link" href="recipe.html?id=${encodeURIComponent(id)}">
-      <div class="card-media"><img src="${esc(image)}" alt="" loading="lazy"></div>
+      <div class="card-media"><img src="${esc(image)}" alt="" loading="lazy" decoding="async"></div>
       <div class="card-body">
         <h2>${esc(title)}</h2>
         <p>${esc(description)}</p>
@@ -436,6 +535,24 @@ const recipeCard = ({ id, image, title, description, tags = [] }, index) => `
     </a>
     ${shareButton({ id, title })}
   </article>`;
+
+const equalizeCardRows = () => {
+  const list = $('#recipeList');
+  if (!list) return;
+  $$('.card-body', list).forEach(body => body.style.removeProperty('height'));
+  if (!list.classList.contains('grid')) return;
+  const rows = [];
+  $$('.recipe-card', list).forEach(card => {
+    const last = rows[rows.length - 1];
+    if (last && last[0].offsetTop === card.offsetTop) last.push(card);
+    else rows.push([card]);
+  });
+  rows.forEach(row => {
+    const bodies = row.map(card => card.querySelector('.card-body'));
+    const height = Math.max(...bodies.map(body => body.offsetHeight));
+    bodies.forEach(body => { body.style.height = `${height}px`; });
+  });
+};
 
 const viewKey = () => (MQ.mobile.matches ? STORAGE_KEYS.viewCompact : STORAGE_KEYS.viewDesktop);
 
@@ -451,7 +568,7 @@ const initIndex = async () => {
 
   let recipes;
   try {
-    recipes = await getRecipes();
+    ({ recipes } = await getData());
   } catch {
     list.innerHTML = '<p class="empty">Recepty se nepodařilo načíst.</p>';
     return;
@@ -468,6 +585,7 @@ const initIndex = async () => {
     const filtered = filterRecipes(recipes);
     list.innerHTML = filtered.map(recipeCard).join('');
     emptyState.hidden = filtered.length > 0;
+    equalizeCardRows();
   };
 
   const applyView = view => {
@@ -475,6 +593,7 @@ const initIndex = async () => {
     list.classList.toggle('list', view === 'list');
     list.classList.toggle('compact', view === 'list' && MQ.mobile.matches);
     viewButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
+    equalizeCardRows();
   };
 
   const syncPlaceholder = () => {
@@ -510,7 +629,16 @@ const initIndex = async () => {
   syncPlaceholder();
   applyView(currentView());
   render();
+
+  let resizeFrame;
+  window.addEventListener('resize', () => {
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(equalizeCardRows);
+  });
+  document.fonts?.ready.then(equalizeCardRows);
 };
+
+const uniqueSorted = values => [...new Set(values)].sort(collator.compare);
 
 const initWakeLock = button => {
   let sentinel = null;
@@ -536,6 +664,7 @@ const initWakeLock = button => {
     wanted = !wanted;
     if (wanted) {
       await acquire();
+      wanted = sentinel !== null;
     } else {
       await sentinel?.release();
       setPressed(false);
@@ -549,20 +678,18 @@ const initWakeLock = button => {
 
 const addButtonMarkup = done => `${icon(done ? 'check' : 'list-plus')}<span class="btn-label">${done ? 'Přidáno do seznamu' : 'Přidat do seznamu'}</span>`;
 
-const renderRecipe = (recipe, root) => {
+const renderRecipe = (recipe, root, dict) => {
   const base = recipe.servings || 1;
-  const unit = recipe.servings_unit || 'porce';
   let current = base;
 
   const tags = (recipe.tags ?? []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('');
   const steps = (recipe.steps ?? []).map((step, index) => `
     <li style="--i:${index}"><span class="step-no">${index + 1}</span><p>${esc(step)}</p></li>`).join('');
-
   const hasSteps = (recipe.steps ?? []).length > 0;
 
   root.innerHTML = `
     <section class="recipe-hero">
-      <img src="${esc(recipe.image)}" alt="">
+      <img src="${esc(recipe.image)}" alt="" fetchpriority="high" decoding="async">
       ${shareButton(recipe)}
       <div class="recipe-hero-text">
         <div class="tags">${tags}</div>
@@ -580,7 +707,7 @@ const renderRecipe = (recipe, root) => {
               <output aria-live="polite">${base}</output>
               <button type="button" class="step-btn" data-step="1" aria-label="Více">${icon('plus')}</button>
             </div>
-            <span class="servings-unit">${esc(unit)}</span>
+            <span class="servings-unit">${esc(nounForm(dict, recipe.servings_unit, base))}</span>
           </div>
         </div>
         <ul class="ingredient-list"></ul>
@@ -596,22 +723,24 @@ const renderRecipe = (recipe, root) => {
     </div>`;
 
   const output = $('output', root);
+  const servingsUnit = $('.servings-unit', root);
   const ingredientList = $('.ingredient-list', root);
   const addButton = $('.btn-add', root);
   const wakeButton = $('.btn-wake', root);
 
-  const currentItems = () => {
-    const factor = current / base;
-    return recipe.ingredients.map(ingredient => scaleIngredient(ingredient, factor));
-  };
+  const currentItems = () => scaledIngredients(recipe, current, dict);
 
   const drawIngredients = () => {
     output.textContent = String(current);
-    ingredientList.innerHTML = currentItems().map(item => `
+    servingsUnit.textContent = nounForm(dict, recipe.servings_unit, current);
+    ingredientList.innerHTML = currentItems().map(item => {
+      const described = describeItem(item, dict);
+      return `
       <li>
-        <span class="ing-qty">${esc(formatAmount(item.amount, item.amount_max))}</span>
-        <span class="ing-name">${esc([item.unit, item.name].filter(Boolean).join(' '))}</span>
-      </li>`).join('');
+        <span class="ing-qty">${esc(described.number)}</span>
+        <span class="ing-name">${esc([described.unit, described.label].filter(Boolean).join(' '))}</span>
+      </li>`;
+    }).join('');
   };
 
   root.addEventListener('click', event => {
@@ -630,10 +759,7 @@ const renderRecipe = (recipe, root) => {
 
   addButton.addEventListener('click', () => {
     addRecipeToCart(recipe, currentItems());
-    addButton.innerHTML = addButtonMarkup(true);
-    setTimeout(() => {
-      addButton.innerHTML = addButtonMarkup(false);
-    }, 1600);
+    flashButton(addButton, addButtonMarkup(true));
   });
 
   if ('wakeLock' in navigator) {
@@ -650,15 +776,15 @@ const initRecipe = async () => {
   const errorBox = $('#recipeError');
   const id = new URLSearchParams(location.search).get('id');
 
-  let recipes;
+  let data;
   try {
-    recipes = await getRecipes();
+    data = await getData();
   } catch {
     errorBox.hidden = false;
     return;
   }
 
-  const recipe = recipes.find(item => item.id === id);
+  const recipe = data.recipes.find(item => item.id === id);
   if (!recipe) {
     errorBox.hidden = false;
     return;
@@ -669,9 +795,10 @@ const initRecipe = async () => {
   setMeta('meta[property="og:url"]', 'content', url);
   setMeta('meta[name="description"]', 'content', recipe.description);
   setMeta('meta[property="og:description"]', 'content', recipe.description);
-  setMeta('meta[property="og:image"]', 'content', recipe.image);
-  document.head.append(recipeSchema(recipe, url));
-  renderRecipe(recipe, article);
+  const image = new URL(recipe.image, location.href).href;
+  setMeta('meta[property="og:image"]', 'content', image);
+  document.head.append(recipeSchema({ ...recipe, image }, url, data.dictionary));
+  renderRecipe(recipe, article, data.dictionary);
 };
 
 initTheme();

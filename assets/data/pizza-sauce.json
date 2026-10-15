@@ -2,7 +2,7 @@
   "id": "pizza-sauce",
   "title": "Smetanový základ na pizzu s mozzarellou a česnekem",
   "description": "Jemný krémový základ z mozzarelly, česneku a smetany. Na pizzu nahradí klasickou rajčatovou omáčku a dodá jí sytou, krémovou chuť.",
-  "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
+  "image": "assets/img/photo.jpg",
   "servings": 4,
   "servings_unit": "porce",
   "tags": [
@@ -21,14 +21,13 @@
       "unit": "g"
     },
     {
-      "name": "mozzarelly",
-      "amount": 1,
-      "unit": "ks"
+      "ref": "mozzarella",
+      "amount": 1
     },
     {
       "name": "česneku",
       "amount": 1,
-      "unit": "stroužek"
+      "unit": "strouzek"
     }
   ],
   "steps": [

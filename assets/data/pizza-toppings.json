@@ -2,9 +2,9 @@
   "id": "pizza-toppings",
   "title": "Suroviny na pizzu",
   "description": "Výběr oblíbených surovin na pizzu.",
-  "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
+  "image": "assets/img/photo.jpg",
   "servings": 4,
-  "servings_unit": "pizzy",
+  "servings_unit": "pizza",
   "tags": [
     "Slané",
     "Pizza"
@@ -59,14 +59,19 @@
       "unit": "g"
     },
     {
-      "name": "malé cibule nakrájené na kolečka",
-      "amount": 1,
-      "unit": "ks"
+      "ref": "hermelin",
+      "amount": 2,
+      "amount_max": 3
     },
     {
-      "name": "vajíčka ušlehaného na potření okrajů těsta",
+      "ref": "cibule",
       "amount": 1,
-      "unit": "ks"
+      "small": true
+    },
+    {
+      "ref": "vejce",
+      "amount": 1,
+      "scale": "fixed"
     }
   ],
   "steps": []
