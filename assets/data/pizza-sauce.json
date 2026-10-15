@@ -1,20 +1,39 @@
 {
   "id": "pizza-sauce",
   "title": "Smetanový základ na pizzu s mozzarellou a česnekem",
-  "description": "Jednoduchý smetanový základ na pizzu s mozzarellou a česnekem.",
+  "description": "Jemný krémový základ z mozzarelly, česneku a smetany. Na pizzu nahradí klasickou rajčatovou omáčku a dodá jí sytou, krémovou chuť.",
   "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
   "servings": 4,
   "servings_unit": "porce",
-  "tags": ["Slané"],
-  "ingredients_types": ["Smetana ke šlehání 33%", "Mozzarella", "Česnek"],
+  "tags": [
+    "Slané",
+    "Pizza"
+  ],
+  "ingredients_types": [
+    "Smetana ke šlehání 33%",
+    "Mozzarella",
+    "Česnek"
+  ],
   "ingredients": [
-    { "name": "smetany ke šlehání 33%", "amount": 250, "unit": "g" },
-    { "name": "mozzarelly", "amount": 1, "unit": "ks" },
-    { "name": "česneku", "amount": 1, "unit": "stroužek" }
+    {
+      "name": "smetany ke šlehání 33%",
+      "amount": 250,
+      "unit": "g"
+    },
+    {
+      "name": "mozzarelly",
+      "amount": 1,
+      "unit": "ks"
+    },
+    {
+      "name": "česneku",
+      "amount": 1,
+      "unit": "stroužek"
+    }
   ],
   "steps": [
-    "Mozzarellu nakrájíme na kostičky a rozmixujeme.",
-    "Stroužek česneku oloupeme a rozmixujeme s mozzarellou.",
-    "Přilijeme smetanu a mixujeme, dokud nevznikne hladká a hustá pasta."
+    "Mozzarellu nakrájíme na drobné kostičky a v mixéru rozmělníme do jemné drobenky.",
+    "Stroužek česneku oloupeme, přidáme k sýru a vše dohladka rozmixujeme.",
+    "Postupně přilijeme smetanu a mixujeme, dokud nevznikne hladká, hustá a krémová pasta, která se na těsto pěkně roztírá."
   ]
 }

@@ -1,6 +1,8 @@
 {
   "recipes": [
+    "assets/data/pepper-sauce.json",
     "assets/data/pizza-dough.json",
-    "assets/data/pizza-sauce.json"
+    "assets/data/pizza-sauce.json",
+    "assets/data/pizza-toppings.json"
   ]
 }

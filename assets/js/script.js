@@ -37,6 +37,10 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, char => escapeMap[c
 
 const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
 
+const normalizeText = value => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+
+const customKey = name => `custom|${normalizeText(name)}`;
+
 const readStorage = (key, fallback) => {
   try {
     const raw = localStorage.getItem(key);
@@ -117,12 +121,12 @@ const loadRecipes = async () => {
 
 const getRecipes = () => (recipesPromise ??= loadRecipes());
 
-const emptyCart = () => ({ recipes: {}, checked: {} });
+const emptyCart = () => ({ recipes: {}, checked: {}, custom: [] });
 
 let cart = (() => {
   const stored = readStorage(STORAGE_KEYS.cart, null);
   return stored && typeof stored === 'object'
-    ? { recipes: stored.recipes ?? {}, checked: stored.checked ?? {} }
+    ? { recipes: stored.recipes ?? {}, checked: stored.checked ?? {}, custom: stored.custom ?? [] }
     : emptyCart();
 })();
 
@@ -134,7 +138,7 @@ const persistCart = () => {
 const updateCartBadge = () => {
   const badge = $('#cartBadge');
   if (!badge) return;
-  const count = Object.keys(cart.recipes).length;
+  const count = Object.keys(cart.recipes).length + cart.custom.length;
   badge.textContent = count;
   badge.hidden = count === 0;
 };
@@ -161,6 +165,10 @@ const aggregateCart = () => {
       map.set(key, entry);
     });
   });
+  cart.custom.forEach(({ name }) => {
+    const key = customKey(name);
+    map.set(key, { key, name, unit: '', amount: null, amount_max: null, parts: [], custom: true });
+  });
   return [...map.values()].sort((a, b) =>
     Number(Boolean(cart.checked[a.key])) - Number(Boolean(cart.checked[b.key]))
     || unitRank(a.unit) - unitRank(b.unit)
@@ -177,28 +185,57 @@ const cartItemMarkup = entry => {
     <span class="item-parts">${entry.parts.map(part => `
       <span class="part-line">${esc([formatAmount(part.amount, part.amount_max), part.unit].filter(Boolean).join(' '))}<small>${esc(part.title)}</small></span>
     `).join('')}</span>` : '';
+  const remove = entry.custom
+    ? `<button type="button" class="item-remove" data-remove-custom="${esc(entry.key)}" aria-label="Odebrat položku">${icon('close')}</button>`
+    : '';
   return `
-    <label class="cart-item${checked ? ' is-checked' : ''}${multi ? ' is-multi' : ''}">
-      <input type="checkbox" data-key="${esc(entry.key)}" ${checked ? 'checked' : ''}>
-      <span class="item-card">
-        <span class="item-title">${esc(title)}</span>
-        ${parts}
-      </span>
-    </label>`;
+    <div class="cart-row">
+      <label class="cart-item${checked ? ' is-checked' : ''}${multi ? ' is-multi' : ''}">
+        <input type="checkbox" data-key="${esc(entry.key)}" ${checked ? 'checked' : ''}>
+        <span class="item-card">
+          <span class="item-title">${esc(title)}</span>
+          ${parts}
+        </span>
+      </label>
+      ${remove}
+    </div>`;
 };
 
 const renderCart = () => {
   const body = $('#cartBody');
   if (!body) return;
   const recipes = Object.values(cart.recipes);
-  if (!recipes.length) {
-    body.innerHTML = '<div class="empty-cart"><p>Seznam je prázdný.</p><p>Suroviny lze přidat z detailu receptu.</p></div>';
+  if (!recipes.length && !cart.custom.length) {
+    body.innerHTML = '<div class="empty-cart"><p>Seznam je prázdný.</p><p>Suroviny lze přidat z detailu receptu nebo vyhledat výše.</p></div>';
     return;
   }
   const sources = recipes.map(recipe => `
     <span class="tag removable">${esc(recipe.title)}<button type="button" data-remove-recipe="${esc(recipe.id)}" aria-label="Odebrat recept">${icon('close')}</button></span>
   `).join('');
-  body.innerHTML = `<div class="cart-sources">${sources}</div><div class="cart-list">${aggregateCart().map(cartItemMarkup).join('')}</div>`;
+  body.innerHTML = `${sources ? `<div class="cart-sources">${sources}</div>` : ''}<div class="cart-list">${aggregateCart().map(cartItemMarkup).join('')}</div>`;
+};
+
+const shoppingListText = () => {
+  const lines = aggregateCart()
+    .filter(entry => !cart.checked[entry.key])
+    .map(entry => `* ${capitalize(formatLine(entry))}`);
+  return lines.length ? ['Nákupní seznam:', '', ...lines].join('\n') : '';
+};
+
+const shareShoppingList = async event => {
+  const button = event.currentTarget;
+  const text = shoppingListText();
+  if (!text) return;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Nákupní seznam', text });
+    } catch {}
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    flashButton(button, icon('copy'));
+  } catch {}
 };
 
 const initCart = () => {
@@ -224,12 +261,22 @@ const initCart = () => {
   });
 
   body.addEventListener('click', event => {
-    const removeButton = event.target.closest('[data-remove-recipe]');
-    if (!removeButton) return;
-    delete cart.recipes[removeButton.dataset.removeRecipe];
+    const removeRecipe = event.target.closest('[data-remove-recipe]');
+    const removeCustom = event.target.closest('[data-remove-custom]');
+    if (removeRecipe) {
+      delete cart.recipes[removeRecipe.dataset.removeRecipe];
+    } else if (removeCustom) {
+      const key = removeCustom.dataset.removeCustom;
+      cart.custom = cart.custom.filter(item => customKey(item.name) !== key);
+      delete cart.checked[key];
+    } else {
+      return;
+    }
     persistCart();
     renderCart();
   });
+
+  $('#cartShare')?.addEventListener('click', shareShoppingList);
 
   $('#cartClear')?.addEventListener('click', () => {
     cart = emptyCart();
@@ -237,7 +284,67 @@ const initCart = () => {
     renderCart();
   });
 
+  initCartAdd();
   updateCartBadge();
+};
+
+let staplesPromise;
+
+const getStaples = () => (staplesPromise ??= fetch('assets/data/staples.json')
+  .then(response => (response.ok ? response.json() : []))
+  .catch(() => []));
+
+const initCartAdd = async () => {
+  const form = $('#cartAddForm');
+  const input = $('#cartAddInput');
+  const suggest = $('#cartSuggest');
+  if (!form || !input || !suggest) return;
+
+  const staples = await getStaples();
+  const isInCart = name => cart.custom.some(item => customKey(item.name) === customKey(name));
+
+  const render = () => {
+    const query = normalizeText(input.value);
+    const matches = query
+      ? staples.filter(name => normalizeText(name).includes(query) && !isInCart(name)).slice(0, 6)
+      : [];
+    suggest.hidden = matches.length === 0;
+    suggest.innerHTML = matches.map(name =>
+      `<button type="button" class="cart-suggest-item" data-name="${esc(name)}">${esc(name)}</button>`
+    ).join('');
+  };
+
+  const addCustom = name => {
+    const trimmed = name.trim();
+    if (!trimmed || isInCart(trimmed)) return;
+    cart.custom.push({ name: trimmed });
+    persistCart();
+    renderCart();
+  };
+
+  const clearInput = () => {
+    input.value = '';
+    render();
+    input.focus();
+  };
+
+  input.addEventListener('input', render);
+
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    if (!input.value.trim()) return;
+    addCustom(input.value);
+    clearInput();
+  });
+
+  suggest.addEventListener('click', event => {
+    const button = event.target.closest('[data-name]');
+    if (!button) return;
+    addCustom(button.dataset.name);
+    clearInput();
+  });
+
+  render();
 };
 
 const indexState = { query: '', tags: new Set(), pantry: new Set() };
@@ -258,24 +365,77 @@ const renderChipGroup = (container, values, selected, onChange) => {
 };
 
 const filterRecipes = recipes => {
-  const query = indexState.query.trim().toLowerCase();
+  const query = normalizeText(indexState.query);
   return recipes.filter(({ title, description, tags = [], ingredients_types: types = [] }) => {
-    if (query && ![title, description, ...tags, ...types].join(' ').toLowerCase().includes(query)) return false;
+    if (query && !normalizeText([title, description, ...tags, ...types].join(' ')).includes(query)) return false;
     if (indexState.tags.size && !tags.some(tag => indexState.tags.has(tag))) return false;
     if (indexState.pantry.size && !types.some(type => indexState.pantry.has(type))) return false;
     return true;
   });
 };
 
+const recipeUrl = id => new URL(`recipe.html?id=${encodeURIComponent(id)}`, location.href).href;
+
+const shareButton = ({ id, title }) =>
+  `<button type="button" class="share-btn" data-share="${esc(id)}" aria-label="Sdílet recept: ${esc(title)}" title="Sdílet">${icon('share')}</button>`;
+
+const flashButton = (button, markup) => {
+  const original = button.innerHTML;
+  button.innerHTML = markup;
+  setTimeout(() => {
+    button.innerHTML = original;
+  }, 1600);
+};
+
+const shareRecipe = async (recipe, button) => {
+  const url = recipeUrl(recipe.id);
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: recipe.title, text: recipe.description, url });
+    } catch {}
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    flashButton(button, icon('copy'));
+  } catch {}
+};
+
+const setMeta = (selector, attribute, value) => {
+  document.querySelector(selector)?.setAttribute(attribute, value);
+};
+
+const recipeSchema = (recipe, url) => {
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Recipe',
+    name: recipe.title,
+    description: recipe.description,
+    image: recipe.image,
+    url,
+    recipeYield: `${recipe.servings} ${recipe.servings_unit || 'porce'}`,
+    recipeCategory: (recipe.tags ?? []).join(', ') || undefined,
+    recipeIngredient: recipe.ingredients.map(item => formatLine(item)),
+    recipeInstructions: (recipe.steps ?? []).map(text => ({ '@type': 'HowToStep', text })),
+    inLanguage: 'cs'
+  });
+  return script;
+};
+
 const recipeCard = ({ id, image, title, description, tags = [] }, index) => `
-  <a class="recipe-card" style="--i:${index}" href="recipe.html?id=${encodeURIComponent(id)}">
-    <div class="card-media"><img src="${esc(image)}" alt="" loading="lazy"></div>
-    <div class="card-body">
-      <h2>${esc(title)}</h2>
-      <p>${esc(description)}</p>
-      <div class="tags">${tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}</div>
-    </div>
-  </a>`;
+  <article class="recipe-card" style="--i:${index}">
+    <a class="card-link" href="recipe.html?id=${encodeURIComponent(id)}">
+      <div class="card-media"><img src="${esc(image)}" alt="" loading="lazy"></div>
+      <div class="card-body">
+        <h2>${esc(title)}</h2>
+        <p>${esc(description)}</p>
+        <div class="tags">${tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}</div>
+      </div>
+    </a>
+    ${shareButton({ id, title })}
+  </article>`;
 
 const viewKey = () => (MQ.mobile.matches ? STORAGE_KEYS.viewCompact : STORAGE_KEYS.viewDesktop);
 
@@ -297,6 +457,13 @@ const initIndex = async () => {
     return;
   }
 
+  list.addEventListener('click', event => {
+    const button = event.target.closest('[data-share]');
+    if (!button) return;
+    const recipe = recipes.find(item => item.id === button.dataset.share);
+    if (recipe) shareRecipe(recipe, button);
+  });
+
   const render = () => {
     const filtered = filterRecipes(recipes);
     list.innerHTML = filtered.map(recipeCard).join('');
@@ -311,7 +478,7 @@ const initIndex = async () => {
   };
 
   const syncPlaceholder = () => {
-    searchInput.placeholder = MQ.tablet.matches ? PLACEHOLDER.narrow : PLACEHOLDER.wide;
+    searchInput.placeholder = MQ.mobile.matches ? PLACEHOLDER.narrow : PLACEHOLDER.wide;
   };
 
   renderChipGroup($('#tagChips'), uniqueSorted(recipes.flatMap(recipe => recipe.tags ?? [])), indexState.tags, render);
@@ -335,7 +502,7 @@ const initIndex = async () => {
     });
   });
 
-  MQ.tablet.addEventListener('change', syncPlaceholder);
+  MQ.mobile.addEventListener('change', syncPlaceholder);
   MQ.mobile.addEventListener('change', () => {
     applyView(currentView());
   });
@@ -391,16 +558,19 @@ const renderRecipe = (recipe, root) => {
   const steps = (recipe.steps ?? []).map((step, index) => `
     <li style="--i:${index}"><span class="step-no">${index + 1}</span><p>${esc(step)}</p></li>`).join('');
 
+  const hasSteps = (recipe.steps ?? []).length > 0;
+
   root.innerHTML = `
     <section class="recipe-hero">
       <img src="${esc(recipe.image)}" alt="">
+      ${shareButton(recipe)}
       <div class="recipe-hero-text">
         <div class="tags">${tags}</div>
         <h1>${esc(recipe.title)}</h1>
       </div>
     </section>
     <p class="lead">${esc(recipe.description)}</p>
-    <div class="recipe-layout">
+    <div class="recipe-layout${hasSteps ? '' : ' single'}">
       <section class="panel">
         <div class="panel-head">
           <h2>Suroviny</h2>
@@ -419,10 +589,10 @@ const renderRecipe = (recipe, root) => {
           <button type="button" class="btn primary btn-add" aria-label="Přidat do seznamu">${addButtonMarkup(false)}</button>
         </div>
       </section>
-      <section class="panel steps-panel">
+      ${hasSteps ? `<section class="panel steps-panel">
         <h2>Postup</h2>
         <ol class="steps">${steps}</ol>
-      </section>
+      </section>` : ''}
     </div>`;
 
   const output = $('output', root);
@@ -445,6 +615,11 @@ const renderRecipe = (recipe, root) => {
   };
 
   root.addEventListener('click', event => {
+    const shareTarget = event.target.closest('[data-share]');
+    if (shareTarget) {
+      shareRecipe(recipe, shareTarget);
+      return;
+    }
     const stepButton = event.target.closest('[data-step]');
     if (!stepButton) return;
     const next = current + Number(stepButton.dataset.step);
@@ -489,7 +664,13 @@ const initRecipe = async () => {
     return;
   }
 
-  document.title = `${recipe.title} · SimpleRecipes`;
+  const url = recipeUrl(recipe.id);
+  setMeta('link[rel="canonical"]', 'href', url);
+  setMeta('meta[property="og:url"]', 'content', url);
+  setMeta('meta[name="description"]', 'content', recipe.description);
+  setMeta('meta[property="og:description"]', 'content', recipe.description);
+  setMeta('meta[property="og:image"]', 'content', recipe.image);
+  document.head.append(recipeSchema(recipe, url));
   renderRecipe(recipe, article);
 };
 

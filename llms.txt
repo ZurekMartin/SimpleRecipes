@@ -1,0 +1,19 @@
+# SimpleRecipes
+
+> Osobní sbírka jednoduchých receptů s přepočtem surovin podle počtu porcí, nákupním seznamem a sdílením. Open source, hostováno na GitHub Pages.
+
+## Recepty
+
+- [Smetanová pepřová omáčka](https://recipes.zurekmartin.cz/recipe.html?id=pepper-sauce): Krémová pepřová omáčka na smetanovém základě, vhodná ke steakům, medailonkům z vepřové panenky i k přírodním plátkům masa.
+- [Pizza těsto z řeckého jogurtu](https://recipes.zurekmartin.cz/recipe.html?id=pizza-dough): Rychlé těsto bez kynutí z řeckého jogurtu a hladké mouky. Po rozválení zůstává pružné a snadno se s ním pracuje.
+- [Smetanový základ na pizzu s mozzarellou a česnekem](https://recipes.zurekmartin.cz/recipe.html?id=pizza-sauce): Jemný krémový základ z mozzarelly, česneku a smetany. Na pizzu nahradí klasickou rajčatovou omáčku a dodá jí sytou, krémovou chuť.
+- [Suroviny na pizzu](https://recipes.zurekmartin.cz/recipe.html?id=pizza-toppings): Výběr oblíbených surovin na pizzu.
+
+## Stránky
+
+- [Přehled receptů](https://recipes.zurekmartin.cz/): Vyhledávání, filtry podle kategorie a suroviny, zobrazení seznam či karty.
+- [Detail receptu](https://recipes.zurekmartin.cz/recipe.html): Suroviny s přepočtem porcí, postup, přidání do nákupního seznamu a sdílení.
+
+## Zdrojový kód
+
+- [GitHub](https://github.com/ZurekMartin/SimpleRecipes): Open source repozitář projektu.

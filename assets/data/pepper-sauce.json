@@ -1,0 +1,50 @@
+{
+  "id": "pepper-sauce",
+  "title": "Smetanová pepřová omáčka",
+  "description": "Krémová pepřová omáčka na smetanovém základě, vhodná ke steakům, medailonkům z vepřové panenky i k přírodním plátkům masa.",
+  "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
+  "servings": 2,
+  "servings_unit": "porce",
+  "tags": [
+    "Slané",
+    "Omáčka"
+  ],
+  "ingredients_types": [
+    "Máslo",
+    "Cibule",
+    "Kuřecí vývar",
+    "Smetana na vaření 12%",
+    "Zelený pepř"
+  ],
+  "ingredients": [
+    {
+      "name": "smetany na vaření 12%",
+      "amount": 200,
+      "unit": "ml"
+    },
+    {
+      "name": "másla",
+      "amount": 1,
+      "amount_max": 2,
+      "unit": "lžíce"
+    },
+    {
+      "name": "nakládaného zeleného pepře",
+      "amount": 2,
+      "amount_max": 3,
+      "unit": "čajové lžičky"
+    },
+    {
+      "name": "soli",
+      "amount": null,
+      "unit": "špetka"
+    }
+  ],
+  "steps": [
+    "Na pánvičce na mírném ohni rozehřejeme máslo, aby se nepřipálilo.",
+    "Přidáme cibulku nakrájenou nadrobno a restujeme do zlatova.",
+    "Přilijeme smetanu na vaření a zahřejeme ji, aby se nesrazila.",
+    "Jakmile začne omáčka jemně bublat, přisypeme mírně podrcený zelený pepř a špetku soli.",
+    "Omáčku za stálého míchání zredukujeme, dokud nebude mít hustou a krémovou konzistenci."
+  ]
+}

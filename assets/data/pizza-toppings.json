@@ -1,0 +1,73 @@
+{
+  "id": "pizza-toppings",
+  "title": "Suroviny na pizzu",
+  "description": "Výběr oblíbených surovin na pizzu.",
+  "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
+  "servings": 4,
+  "servings_unit": "pizzy",
+  "tags": [
+    "Slané",
+    "Pizza"
+  ],
+  "ingredients_types": [
+    "Mozzarella",
+    "Eidam",
+    "Gouda",
+    "Hermelín",
+    "Šunka",
+    "Slanina",
+    "Salám",
+    "Žampiony",
+    "Kukuřice",
+    "Cibule",
+    "Vejce"
+  ],
+  "ingredients": [
+    {
+      "name": "mozzarelly",
+      "amount": 300,
+      "unit": "g"
+    },
+    {
+      "name": "nastrouhaného eidamu nebo goudy",
+      "amount": 150,
+      "unit": "g"
+    },
+    {
+      "name": "šunky",
+      "amount": 200,
+      "unit": "g"
+    },
+    {
+      "name": "salámu",
+      "amount": 150,
+      "unit": "g"
+    },
+    {
+      "name": "slaniny",
+      "amount": 150,
+      "unit": "g"
+    },
+    {
+      "name": "žampionů z konzervy",
+      "amount": 200,
+      "unit": "g"
+    },
+    {
+      "name": "kukuřice z konzervy",
+      "amount": 100,
+      "unit": "g"
+    },
+    {
+      "name": "malé cibule nakrájené na kolečka",
+      "amount": 1,
+      "unit": "ks"
+    },
+    {
+      "name": "vajíčka ušlehaného na potření okrajů těsta",
+      "amount": 1,
+      "unit": "ks"
+    }
+  ],
+  "steps": []
+}

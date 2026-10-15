@@ -1,19 +1,48 @@
 {
   "id": "pizza-dough",
-  "title": "Pizza těsto z řeckého jogurtu a hladké mouky",
-  "description": "Jednoduché pizza těsto z řeckého jogurtu a hladké mouky.",
+  "title": "Pizza těsto z řeckého jogurtu",
+  "description": "Rychlé těsto bez kynutí z řeckého jogurtu a hladké mouky. Po rozválení zůstává pružné a snadno se s ním pracuje.",
   "image": "https://images.unsplash.com/photo-1495546968767-f0573cca821e?q=80&w=1200&auto=format&fit=crop",
   "servings": 4,
   "servings_unit": "ks",
-  "tags": ["Slané"],
-  "ingredients_types": ["Řecký jogurt", "Hladká mouka", "Sůl", "Kypřící prášek do pečiva"],
+  "tags": [
+    "Slané",
+    "Pizza"
+  ],
+  "ingredients_types": [
+    "Řecký jogurt",
+    "Hladká mouka",
+    "Sůl",
+    "Kypřící prášek do pečiva"
+  ],
   "ingredients": [
-    { "name": "řeckého jogurtu", "amount": 250, "amount_max": 300, "unit": "g" },
-    { "name": "hladké mouky", "amount": 250, "amount_max": 300, "unit": "g" },
-    { "name": "kypřícího prášku do pečiva", "amount": 1, "unit": "čajová lžička" },
-    { "name": "soli", "amount": null, "unit": "špetka" }
+    {
+      "name": "řeckého jogurtu",
+      "amount": 250,
+      "amount_max": 300,
+      "unit": "g"
+    },
+    {
+      "name": "hladké mouky",
+      "amount": 250,
+      "amount_max": 300,
+      "unit": "g"
+    },
+    {
+      "name": "kypřícího prášku do pečiva",
+      "amount": 1,
+      "unit": "čajová lžička"
+    },
+    {
+      "name": "soli",
+      "amount": null,
+      "unit": "špetka"
+    }
   ],
   "steps": [
-    "Odvážené suroviny vložíme do mísy robotu a pomalu mísíme, dokud nevznikne hladké těsto, které se nelepí na stěny."
+    "Do mísy robotu vložíme odvážený řecký jogurt, hladkou mouku, kypřící prášek a špetku soli.",
+    "Pomalu mícháme, dokud se suroviny spojí a nevznikne hladké těsto.",
+    "V případě potřeby přidáváme mouku po malých dávkách, dokud se těsto nepřestane lepit na kraje mísy.",
+    "Těsto přeneseme na lehce pomoučenou plochu, krátce ho uhněteme do hladka a rozdělíme na čtyři stejné kusy."
   ]
 }
